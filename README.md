@@ -1,4 +1,4 @@
-# Craft Mesh Exporter
+# Kerbal 3D Exporter
 
 A Kerbal Space Program 1 editor/flight plugin for exporting the currently loaded (or active) craft as a 3D model suitable for visualization and 3D printing.
 
