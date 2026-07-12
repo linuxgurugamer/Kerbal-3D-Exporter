@@ -41,6 +41,8 @@ namespace Kerbal_3D_Exporter
             Log.SetLevel(Log.LEVEL.INFO);
             Log.Info("Logging initialized");
 
+            Utils.InitStyles();
+
             ToolbarControl.RegisterMod(Kerbal3DExporter_ToolbarButton.MODID, Kerbal3DExporter_ToolbarButton.MODNAME);
         }
     }
@@ -87,12 +89,19 @@ namespace Kerbal_3D_Exporter
 
         private void OnTrue()
         {
+            gameObject.AddComponent<CraftPrintExporterWindow>();
+
             CraftPrintExporterWindow.OpenWindow();
         }
 
         private void OnFalse()
         {
             CraftPrintExporterWindow.CloseWindow();
+            if (SlicerConfigurationWindow.showWindow)
+            {
+                SlicerConfigurationWindow.Close();
+            }
+
         }
 
         // Called by CraftPrintExporterWindow.Close() (i.e. the in-window "Close" button) so the

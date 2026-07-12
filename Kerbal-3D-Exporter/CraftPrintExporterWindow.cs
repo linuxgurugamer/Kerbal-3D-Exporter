@@ -9,7 +9,7 @@ using static Kerbal_3D_Exporter.Kerbal3DExporter_ToolbarRegistration;
 
 namespace Kerbal_3D_Exporter
 {
-
+#if false
     [KSPAddon(KSPAddon.Startup.EditorAny, false)]
     public class CraftPrintExporterWindowEditor : CraftPrintExporterWindow
     {
@@ -19,10 +19,10 @@ namespace Kerbal_3D_Exporter
     public class CraftPrintExporterWindowFlight : CraftPrintExporterWindow
     {
     }
+#endif
 
     public class CraftPrintExporterWindow : MonoBehaviour
     {
-        private const int WINDOW_ID = 918273;
         private const float MIN_EXPORT_SCALE = 0.001f;
 
         private const int WINDOW_WIDTH = 760;
@@ -89,9 +89,10 @@ namespace Kerbal_3D_Exporter
 
             if (!HighLogic.LoadedSceneIsEditor && !HighLogic.LoadedSceneIsFlight)
                 return;
-
+            GUI.enabled = SlicerConfigurationWindow.showWindow == false;
             if (showWindow)
-                windowRect = ClickThruBlocker.GUILayoutWindow(WINDOW_ID, windowRect, DrawWindow, "Kerbal 3D Exporter");
+                windowRect = ClickThruBlocker.GUILayoutWindow(Utils.ExportWinID, windowRect, DrawWindow, "Kerbal 3D Exporter", Utils.solidWindowStyle);
+            GUI.enabled = true;
         }
 
         private void DrawWindow(int id)
@@ -839,6 +840,9 @@ namespace Kerbal_3D_Exporter
 
         public void Open()
         {
+            slicerConfig = new SlicerConfiguration();
+            slicerConfig.LoadConfiguration();
+
             showWindow = true;
 
             if (string.IsNullOrEmpty(slicerConfig.OutputDirectory))
@@ -853,6 +857,7 @@ namespace Kerbal_3D_Exporter
         {
             showWindow = false;
             Kerbal3DExporter_ToolbarButton.NotifyWindowClosed();
+            Destroy(this);
         }
 
         public static void OpenWindow()

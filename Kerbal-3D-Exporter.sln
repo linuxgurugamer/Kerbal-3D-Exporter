@@ -8,9 +8,9 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
 	ProjectSection(SolutionItems) = preProject
 		buildRelease.bat = buildRelease.bat
+		Changelog.txt = Changelog.txt
 		deploy.bat = deploy.bat
 		jenkins.txt = jenkins.txt
-		GameData\CraftMeshExporter\MMPatches\Kerbal3DExporter.cfg = GameData\CraftMeshExporter\MMPatches\Kerbal3DExporter.cfg
 		Kerbal-3D-Exporter.version = Kerbal-3D-Exporter.version
 		LICENSE.md = LICENSE.md
 		README.md = README.md

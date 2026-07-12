@@ -8,10 +8,8 @@ namespace Kerbal_3D_Exporter
 {
     public class SlicerConfigurationWindow : MonoBehaviour
     {
-        private const int WINDOW_ID = 918274;
-
         private Rect windowRect = new Rect(Screen.width / 2 - 300, Screen.height / 2 - 250, 600, 550);
-        private bool showWindow;
+        public static bool showWindow;
         private SlicerConfiguration config;
         private List<SlicerLocator.FoundSlicerInfo> installedSlicers;
         private SlicerLocator.FoundSlicerInfo selectedSlicer;
@@ -33,7 +31,10 @@ namespace Kerbal_3D_Exporter
                 return;
 
             if (showWindow)
-                windowRect = ClickThruBlocker.GUILayoutWindow(WINDOW_ID, windowRect, DrawWindow, "Kerbal 3D Exporter - Slicer Configuration");
+            {
+                windowRect = ClickThruBlocker.GUILayoutWindow(Utils.ConfigWinID, windowRect, DrawWindow, "Kerbal 3D Exporter - Slicer Configuration", Utils.solidWindowStyle);
+                GUI.BringWindowToFront(Utils.ConfigWinID);
+            }
         }
 
         private void DrawWindow(int id)
@@ -276,9 +277,13 @@ namespace Kerbal_3D_Exporter
             showWindow = true;
         }
 
-        public void Close()
+        public static void Close()
         {
             showWindow = false;
+            SlicerConfigurationWindow win = FindObjectOfType<SlicerConfigurationWindow>();
+            if (win != null)
+                Destroy(win);
+
         }
 
         public bool IsOpen()
