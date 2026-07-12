@@ -1,303 +1,340 @@
-Craft Mesh Exporter
+# Craft Mesh Exporter
 
 A Kerbal Space Program 1 editor/flight plugin for exporting the currently loaded (or active) craft as a 3D model suitable for visualization and 3D printing.
 
-Features
-    Export the current craft directly from the VAB, SPH, or Flight.
-    Export to:
-        Binary STL
-        Wavefront OBJ
-        3MF (3D Manufacturing Format)
-        STEP / .stp (ISO 10303 AP214, faceted B-rep, for CAD rather than printing)
-        Or any combination of the four, all in one export run.
-    Adjustable export scale.
-    Model coordinates are always relative to the craft's root part (placed at 0, 0, 0), regardless of where the craft happens to be sitting in the world.
-    Launch clamps are excluded from export by default, with a toggle to include them.
-    Collapsible engine list showing every engine in the current craft, with a per-engine toggle for including that engine's shroud/fairing, plus "All Shrouds On"/"All Shrouds Off" bulk buttons.
-    Collapsible Renderer & Collider Diagnostics window listing every renderer AND every collider-only mesh on the craft, each with its own Export checkbox, a live filter box, and hover-to-highlight (for renderers).
-    Colliders with no material default to excluded from export, with one-click buttons to bulk disable/re-enable them.
-    Part variant support: only the currently active/selected variant's meshes are exported, without depending on parsing KSP's internal variant data structures.
-    Optional user-authored exclusion list (shroud-exclusions.txt) for refining which shroud/fairing meshes get excluded.
-    A toolbar button (via ToolbarControl, shown on either Blizzy's Toolbar or the stock KSP toolbar depending on what you have installed) to open the window directly, in addition to the part right-click action.
-    Progress window showing each stage of the export, with cancel support.
-    Creates instruction files alongside each exported model describing the recommended post-processing steps.
-    Creates mesh and part diagnostics files alongside each exported model for troubleshooting what was included or excluded and why.
-    Keeps the game responsive during export by using a coroutine-based state machine.
+## Features
+
+- Export the current craft directly from the VAB, SPH, or Flight
+- **Export to multiple formats:**
+  - Binary STL
+  - Wavefront OBJ
+  - 3MF (3D Manufacturing Format)
+  - STEP / .stp (ISO 10303 AP214, faceted B-rep, for CAD rather than printing)
+  - Export any combination of formats in one run
+- Adjustable export scale
+- Model coordinates are always relative to the craft's root part (placed at 0, 0, 0), regardless of where the craft is positioned in the world
+- Launch clamps excluded from export by default (with toggle to include)
+- Collapsible engine list showing every engine with per-engine shroud/fairing toggle
+- Bulk "All Shrouds On"/"All Shrouds Off" buttons
+- Collapsible Renderer & Collider Diagnostics window listing every renderer and collider-only mesh
+- Individual Export checkboxes for each mesh with live filtering and hover-to-highlight
+- Colliders with no material excluded by default with one-click bulk toggle buttons
+- Part variant support: only active/selected variant meshes exported
+- Optional user-authored exclusion list (shroud-exclusions.txt) for shroud/fairing refinement
+- Toolbar button (via ToolbarControl) for easy access
+- Progress window showing each export stage with cancel support
+- Instruction files generated alongside each model describing recommended post-processing
+- Mesh and part diagnostics files for troubleshooting
+- Coroutine-based state machine to keep the game responsive during export
 
-Installation
-    Install the mod into your KSP installation:
-    GameData/
-        CraftMeshExporter/
-            Plugins/
-                CraftMeshExporter.dll
-            Icons/
-                toolbar-icon.png
-                toolbar-icon-24.png
-        000_ToolbarControl/
-            Plugins/
-                ToolbarControl.dll
-                ClickThroughBlocker.dll
-    ToolbarControl (https://github.com/linuxgurugamer/ToolbarControl) is required for the toolbar button and is not bundled with KSP; download it separately if you don't already have it from another mod. Without it, use the part right-click "Open Craft Exporter" action instead.
-    (Optional) Install the included ModuleManager patch if you want the exporter automatically added to command pods.
+## Installation
 
-Usage
-    Start Kerbal Space Program.
-    Enter the VAB, SPH, or Flight.
-    Load a craft (or use the currently active vessel in Flight).
-    Open the exporter window using either:
-        The toolbar button (top-right stock toolbar, or Blizzy's Toolbar if installed), or
-        Right-clicking a command pod with the exporter module and clicking Open Craft Exporter.
-    Configure the export options.
-    Click Export.
+Install the mod into your KSP installation:
 
-The exporter will display its progress while generating the model.
+```
+GameData/
+  CraftMeshExporter/
+    Plugins/
+      CraftMeshExporter.dll
+    Icons/
+      toolbar-icon.png
+      toolbar-icon-24.png
+  000_ToolbarControl/
+    Plugins/
+      ToolbarControl.dll
+      ClickThroughBlocker.dll
+```
 
-Export Options
-    Scale
+**Dependencies:**
+- [ToolbarControl](https://github.com/linuxgurugamer/ToolbarControl) is required for the toolbar button (download separately if not already installed)
+- **(Optional)** Install the included ModuleManager patch to add the exporter to command pods
 
-        Controls the size of the exported model.
+## Usage
 
-        Default: 0.01
-        Minimum: 0.001
+1. Start Kerbal Space Program
+2. Enter the VAB, SPH, or Flight
+3. Load a craft (or use the currently active vessel in Flight)
+4. Open the exporter window using either:
+   - The toolbar button (top-right stock toolbar or Blizzy's Toolbar if installed), or
+   - Right-click a command pod with the exporter module and select "Open Craft Exporter"
+5. Configure the export options
+6. Click Export
 
-        The exporter converts KSP's internal meter units into millimeters before applying the user scale.
+The exporter displays its progress while generating the model.
 
-        For example:
+## Export Options
 
-        Scale	Result
-        1.0	Full-size millimeter export
-        0.5	Half-size
-        2.0	Double-size
-        0.1	10% size
+### Scale
 
-    Model Origin
+Controls the size of the exported model.
 
-        The exported model's x/y/z coordinates are always relative to the craft's root part, which is placed at exactly (0, 0, 0).
+- **Default:** 0.01
+- **Minimum:** 0.001
 
-        Vertices come out of Unity in raw world-space coordinates, which is wherever the craft happens to be sitting (an arbitrary position in the VAB/SPH, or a position that can drift further in Flight). The root part's world position is subtracted from every vertex before scaling, so the model's origin doesn't depend on where the craft happens to be in the world.
+The exporter converts KSP's internal meter units into millimeters before applying the user scale.
 
-    Export Format
+**Examples:**
 
-        Choose any combination of:
+| Scale | Result |
+|-------|--------|
+| 1.0 | Full-size millimeter export |
+| 0.5 | Half-size |
+| 2.0 | Double-size |
+| 0.1 | 10% size |
 
-            STL
-            OBJ
-            3MF
-            STEP (.stp)
+### Model Origin
 
-        Every selected format is written on the same export run.
+The exported model's x/y/z coordinates are always relative to the craft's root part, which is placed at exactly (0, 0, 0).
 
-        About 3MF:
+Vertices come out of Unity in raw world-space coordinates (an arbitrary position in the VAB/SPH, or a position that can drift in Flight). The exporter normalizes all coordinates relative to the root part to ensure consistency.
 
-            3MF is the format most current slicers prefer. Unlike STL it stores an indexed vertex list, so a shared vertex is written once instead of once per triangle. The result is typically a much smaller file than the equivalent STL for the same mesh.
+### Export Format
 
-            3MF also records the unit (millimeters) inside the file, so the slicer does not have to guess the scale on import.
+Choose any combination of:
 
-            The .3mf written here is a plain OPC/ZIP package containing [Content_Types].xml, _rels/.rels, and 3D/3dmodel.model. It opens directly in Cura, PrusaSlicer, SuperSlicer, OrcaSlicer, Bambu Studio, and Creality Print.
+- STL
+- OBJ
+- 3MF
+- STEP (.stp)
 
-            Separate object + color per part:
+Every selected format is written on the same export run.
 
-                When this sub-option is enabled (it is on by default), the 3MF contains one <object> per KSP part, tied together by an assembly object, instead of a single merged mesh. A slicer will show each part as its own selectable body that you can delete, move, hide, or assign to its own extruder. STL cannot express this at all, and it is the main reason to prefer 3MF over STL here.
+#### About 3MF
 
-                Each part also gets its own color from a generated palette.
+3MF is the format most current slicers prefer. Unlike STL, it stores an indexed vertex list, so a shared vertex is written once instead of once per triangle, resulting in typically much smaller files.
 
-                Be clear about what those colors are: they are SYNTHETIC and decorative. A KSP part is textured, not flat-colored, so there is no single honest "color of this part" to read out of the game. The palette exists purely so that adjacent parts are easy to tell apart on screen. It is not the part's real in-game appearance, and it is not a paint plan.
+3MF also records the unit (millimeters) inside the file, so the slicer doesn't have to guess the scale on import.
 
-                Turning the sub-option off gives the older behavior: one merged, uncolored mesh.
+The .3mf written here is a plain OPC/ZIP package containing `[Content_Types].xml`, `_rels/.rels`, and `3D/3dmodel.model`. It opens directly in Cura, PrusaSlicer, SuperSlicer, OrcaSlicer, Bambu Studio, and similar slicers.
 
-            Apart from those per-part colors, the 3MF export is geometry only, the same as STL and OBJ. It carries no textures.
+**Separate object + color per part:**
 
-        About STEP (.stp):
+When enabled (default), the 3MF contains one `<object>` per KSP part, tied together by an assembly object, instead of a single merged mesh. A slicer with support for multi-part models can see and manipulate each part separately.
 
-            Read this before enabling it, because STEP is not simply "a better STL".
+Each part also gets its own color from a generated palette.
 
-            STEP is a boundary-representation CAD format. A KSP craft is a triangle mesh. The only faithful way across that gap is a faceted B-rep: every single triangle becomes its own flat face, with its own plane and its own three edges.
+**Important:** These colors are SYNTHETIC and decorative. A KSP part is textured, not flat-colored, so there is no single honest "color of this part" to read out of the mesh. The colors are for visual distinction only.
 
-            That is valid STEP and it opens in Fusion 360, SolidWorks, FreeCAD, Onshape, and similar tools. But it is NOT a "real" CAD model. There are no smooth NURBS surfaces and no analytic cylinders; CAD will show you thousands of tiny planar facets, because that is genuinely all a mesh contains. No converter can invent the original smooth surfaces back.
+Turning this sub-option off gives the older behavior: one merged, uncolored mesh.
 
-            It is also big. A faceted B-rep needs roughly 17 STEP entities per triangle, so a 100,000-triangle craft produces something on the order of 1.7 million lines and 100+ MB, and it will be slow to import. If that is unmanageable, decimate the mesh in Blender or MeshLab first and re-export.
+Apart from per-part colors, the 3MF export is geometry only, the same as STL and OBJ. It carries no textures.
 
-            The model is written as a surface body (an open shell), not a closed solid. This is deliberate: a KSP craft is many overlapping part meshes and is not watertight, and a STEP file that claims to be a closed solid while not being one gets rejected outright by CAD kernels.
+#### About STEP (.stp)
 
-            Most slicers cannot read STEP at all. Use STL or 3MF for printing. Use STEP when you want the craft inside a CAD package, for example to build a display stand or a mount around it.
+**Read this before enabling STEP**, as it is not simply "a better STL."
 
-            Because slicers generally cannot open STEP, the "open viewer after export" option never hands it a .stp file. It opens the STL, 3MF, or OBJ instead.
+STEP is a boundary-representation CAD format. A KSP craft is a triangle mesh. The only faithful way across that gap is a faceted B-rep: every single triangle becomes its own flat face.
 
+That is valid STEP and it opens in Fusion 360, SolidWorks, FreeCAD, Onshape, and similar tools. However, it is NOT a "real" CAD model. There are no smooth NURBS surfaces and no analytic cylinders—only explicit triangles.
 
-    STL Viewer / Slicer Executable
+STEP files are also large. A faceted B-rep needs roughly 17 STEP entities per triangle, so a 100,000-triangle craft produces something on the order of 1.7 million lines and 100+ MB. Opening such files in a CAD tool can be slow.
 
-        Optional path to the executable for an STL viewer or slicer, such as PrusaSlicer, Cura, MeshLab, or another viewer.
+The model is written as a surface body (an open shell), not a closed solid. This is deliberate: a KSP craft is many overlapping part meshes and is not watertight, and a STEP solid that claims to be watertight but isn't will cause CAD tools to fail.
 
-        If Open viewer after export completes is enabled, the exporter opens the generated STL when STL export is selected. If STL was not exported, it opens the 3MF instead, and failing that, the OBJ.
+**Most slicers cannot read STEP at all.** Use STL or 3MF for printing. Use STEP when you want the craft inside a CAD package to build a display stand or mount around it.
 
-        If this field is blank and opening is enabled, the exporter attempts to open the model using the operating system's default file association.
+Because slicers generally cannot open STEP, the "open viewer after export" option never hands it a .stp file. It opens the STL, 3MF, or OBJ instead.
 
-    Open Viewer After Export Completes
+### STL Viewer / Slicer Executable
 
-        When checked, the exporter launches the configured viewer/slicer after a successful export.
+Optional path to the executable for an STL viewer or slicer, such as PrusaSlicer, Cura, MeshLab, or another viewer.
 
-        The viewer is not launched if the export is cancelled or fails.
+If "Open viewer after export completes" is enabled, the exporter opens the generated STL when STL export is selected. If STL was not exported, it opens the 3MF instead, and failing that, the OBJ.
 
-    Show Engine Shrouds / Fairings by Default
+If this field is blank and opening is enabled, the exporter attempts to open the model using the operating system's default file association.
 
-        Global master switch controlling whether engine shrouds/fairings are included in the exported model.
+### Open Viewer After Export Completes
 
-        When disabled, supported shroud meshes are hidden before mesh collection and restored after export.
+When checked, the exporter launches the configured viewer/slicer after a successful export.
 
-        Per-engine toggles (in the Engine List) can only further disable a shroud when this is on; they cannot re-enable one when this global switch is off.
+The viewer is not launched if the export is cancelled or fails.
 
-    Exclude Launch Clamps
+### Show Engine Shrouds / Fairings by Default
 
-        Checked by default. Excludes any part with a LaunchClamp module (stock launch clamps) from the export entirely, since they aren't part of the craft itself.
+Global master switch controlling whether engine shrouds/fairings are included in the exported model.
 
-        Uncheck to include launch clamps in the model.
+When disabled, supported shroud meshes are hidden before mesh collection and restored after export.
 
-    Exclude Collider-Only Meshes
+Per-engine toggles (in the Engine List) can only further disable a shroud when this is on; they cannot re-enable one when this global switch is off.
 
-        Colliders (physics-only meshes with no MeshRenderer -- that's literally why they're invisible in-game, regardless of their name) can be listed and toggled individually in the Renderer & Collider Diagnostics window.
+### Exclude Launch Clamps
 
-        Colliders with no material default to excluded automatically. Use "Disable colliders without a material" / "Re-enable all colliders" in that window to apply or undo this in bulk, or toggle individual rows.
+Checked by default. Excludes any part with a LaunchClamp module (stock launch clamps) from the export entirely, since they aren't part of the craft itself.
 
-Engine List
-    Collapsed by default; click "Show Engine List" to expand it.
-    Lists every engine found on the craft with a checkbox for whether to include that engine's shroud/fairing.
-    "Refresh Engine List" rescans the current craft.
-    "All Shrouds On" / "All Shrouds Off" set every engine's checkbox at once.
+Uncheck to include launch clamps in the model.
 
-Renderer & Collider Diagnostics
-    Collapsed by default; click "Show Renderer Diagnostics" to expand it.
-    Lists every Renderer (MeshRenderer/SkinnedMeshRenderer) and every collider-only mesh (a MeshFilter with a Collider component but no MeshRenderer) found on the craft, one row per object.
-    Each row has an Export checkbox; unchecking a row excludes that specific object from the model, independent of any other setting.
-    Hovering a renderer row highlights it in the 3D view (colliders have nothing visible to highlight).
-    A filter box narrows the list by part name, mesh name, path, material, or type.
-    "Refresh Renderers" rescans the current craft.
-    "Disable colliders without a material" / "Re-enable all colliders" bulk-toggle every collider row that has no material (in practice, every collider row).
-    Export automatically refreshes this list before building the model, so these settings take effect even if this window was never opened.
+### Exclude Collider-Only Meshes
 
-shroud-exclusions.txt
-    Optional file at GameData/CraftMeshExporter/shroud-exclusions.txt.
-    Lets you specify additional PartName/Path/Material tokens to treat as shroud/fairing geometry.
-    Applies only when shrouds/fairings are being hidden for that part or engine (i.e. it refines the shroud-hiding heuristics -- it is not a general-purpose always-exclude list).
-    Use the generated *_mesh_diagnostics.txt file to find the exact tokens to add.
+Colliders (physics-only meshes with no MeshRenderer—that's why they're invisible in-game) can be listed and toggled individually in the Renderer & Collider Diagnostics window.
 
-Output Location
-    All exported files are written to:
+Colliders with no material default to excluded automatically. Use "Disable colliders without a material" / "Re-enable all colliders" in that window to apply or undo this in bulk, or toggle them individually.
 
-        GameData/CraftMeshExporter/Models/
+## Engine List
 
-    Example (from the VAB/SPH):
+- Collapsed by default; click "Show Engine List" to expand
+- Lists every engine found on the craft with a checkbox for whether to include that engine's shroud/fairing
+- "Refresh Engine List" rescans the current craft
+- "All Shrouds On" / "All Shrouds Off" set every engine's checkbox at once
 
-        SaturnV_printable.stl
-        SaturnV_printable.obj
-        SaturnV_printable.3mf
-        SaturnV_printable.stp
-        SaturnV_printable_mesh_diagnostics.txt
-        SaturnV_printable_part_diagnostics.txt
-        SaturnV_printable_STL_instructions.txt
-        SaturnV_printable_OBJ_instructions.txt
-        SaturnV_printable_3MF_instructions.txt
-        SaturnV_printable_STEP_instructions.txt
+## Renderer & Collider Diagnostics
 
-    In Flight, exported files use a _flight_current_printable suffix instead of _printable.
+- Collapsed by default; click "Show Renderer Diagnostics" to expand
+- Lists every Renderer (MeshRenderer/SkinnedMeshRenderer) and every collider-only mesh found on the craft, one row per object
+- Each row has an Export checkbox; unchecking excludes that specific object from the model, independent of any other setting
+- Hovering a renderer row highlights it in the 3D view (colliders have nothing visible to highlight)
+- A filter box narrows the list by part name, mesh name, path, material, or type
+- "Refresh Renderers" rescans the current craft
+- "Disable colliders without a material" / "Re-enable all colliders" bulk-toggle every collider row that has no material (in practice, every collider row)
+- Export automatically refreshes this list before building the model, so these settings take effect even if this window was never opened
 
-Export Process
-    The exporter performs the following steps:
+## shroud-exclusions.txt
 
-        Validate the current craft.
-        Snapshot which meshes on parts with variants are already hidden (before anything else touches the scene).
-        Prepare the output directory.
-        Refresh the engine list.
-        Apply the selected shroud visibility.
-        Write part diagnostics.
-        Collect meshes from all parts.
-        Write mesh diagnostics.
-        Remove invalid triangles.
-        Remove duplicate triangles.
-        Write STL (if selected).
-        Write STL instructions.
-        Write OBJ (if selected).
-        Write OBJ instructions.
-        Write 3MF (if selected).
-        Write 3MF instructions.
-        Write STEP (if selected).
-        Write STEP instructions.
-        Restore shroud visibility.
+Optional file at `GameData/CraftMeshExporter/shroud-exclusions.txt`.
 
-    Each stage is displayed in the exporter window.
+Lets you specify additional PartName/Path/Material tokens to treat as shroud/fairing geometry. Applies only when shrouds/fairings are being hidden for that part or engine (i.e., it refines the shroud-hiding heuristics—it is not a general-purpose always-exclude list).
 
-Recommended Workflow for 3D Printing
-    The exported model is intended as a starting point for creating printable models.
+Use the generated `*_mesh_diagnostics.txt` file to find the exact tokens to add.
 
-    Recommended workflow:
+## Output Location
 
-        Export the craft.
-        Import the STL or OBJ into Blender.
-        Inspect for missing or unwanted geometry.
-        Merge meshes using Boolean Union.
-        Remove internal geometry.
-        Repair non-manifold edges.
-        Fill holes.
-        Thicken fragile parts if necessary.
-        Export the repaired model as STL.
-        Slice with your preferred slicer.
+All exported files are written to:
 
-Limitations
-    The exporter works with meshes instantiated by Unity.
+```
+GameData/CraftMeshExporter/Models/
+```
 
-    Some KSP-specific rendering features are not exported, including:
+**Example (from the VAB/SPH):**
 
-        Shaders
-        Materials
-        Textures (OBJ geometry only)
-        Animations
-        Particle systems
-        Lights
+```
+SaturnV_printable.stl
+SaturnV_printable.obj
+SaturnV_printable.3mf
+SaturnV_printable.stp
+SaturnV_printable_mesh_diagnostics.txt
+SaturnV_printable_part_diagnostics.txt
+SaturnV_printable_STL_instructions.txt
+SaturnV_printable_OBJ_instructions.txt
+SaturnV_printable_3MF_instructions.txt
+SaturnV_printable_STEP_instructions.txt
+```
 
-    Only the currently active/selected part variant's meshes are exported; other variants' meshes are excluded.
+In Flight, exported files use a `_flight_current_printable` suffix instead of `_printable`.
 
-    Some mods may generate geometry procedurally. Depending on how those mods are implemented, the generated geometry may or may not appear in the export.
+## Export Process
 
-    Because KSP crafts are assembled from many overlapping meshes, additional cleanup is typically required before producing a watertight mesh suitable for reliable 3D printing.
+The exporter performs the following steps:
 
-Troubleshooting
-    Export fails
-        Check the KSP log (KSP.log) for exception details.
+1. Validate the current craft
+2. Snapshot which meshes on parts with variants are already hidden
+3. Prepare the output directory
+4. Refresh the engine list
+5. Apply the selected shroud visibility
+6. Write part diagnostics
+7. Collect meshes from all parts
+8. Write mesh diagnostics
+9. Remove invalid triangles
+10. Remove duplicate triangles
+11. Write STL (if selected)
+12. Write STL instructions
+13. Write OBJ (if selected)
+14. Write OBJ instructions
+15. Write 3MF (if selected)
+16. Write 3MF instructions
+17. Write STEP (if selected)
+18. Write STEP instructions
+19. Restore shroud visibility
 
-    Missing parts
-        Verify that all required mods are installed and the craft loads correctly in the editor.
+Each stage is displayed in the exporter window.
 
-    A mesh is missing or unexpectedly included
-        Open the Renderer & Collider Diagnostics window, use the filter box to find it, and check whether its Export checkbox matches what you expect. Refreshing rescans the current live scene state.
-        Check the *_mesh_diagnostics.txt file from your last export: every mesh is listed as either EXPORT or SKIP, with the specific reason it was skipped.
+## Recommended Workflow for 3D Printing
 
-    Shrouds still appear, or a shroud is missing
-        Some engines implement shrouds differently than the stock ModuleJettison system. Try adding a token to shroud-exclusions.txt (see above), or toggle the specific renderer off in the Diagnostics window.
-        On engines that also have part variants, a shroud only detected by the name-heuristic fallback (not a real ModuleJettison shroud) will follow whatever the active variant already set, rather than the global shroud toggle -- this is a deliberate trade-off to avoid variant geometry being exported incorrectly.
+The exported model is intended as a starting point for creating printable models.
 
-    Large file sizes
-        Large crafts can contain millions of triangles. Consider reducing the model size or simplifying the mesh in Blender before slicing.
+**Recommended workflow:**
 
-Future Improvements
-    Possible enhancements include:
+1. Export the craft
+2. Import the STL or OBJ into Blender
+3. Inspect for missing or unwanted geometry
+4. Merge meshes using Boolean Union
+5. Remove internal geometry
+6. Repair non-manifold edges
+7. Fill holes
+8. Thicken fragile parts if necessary
+9. Export the repaired model as STL
+10. Slice with your preferred slicer
 
-        Shared-vertex OBJ output.
-        Vertex welding.
-        Mesh decimation.
-        Automatic watertight mesh generation.
-        Automatic Boolean union.
-        glTF export with materials.
-        ZIP package generation.
+## Limitations
 
-License
-    GPLv3 (GNU General Public License version 3)
+The exporter works with meshes instantiated by Unity.
 
-Disclaimer
-    This project is provided as-is without warranty. Use at your own risk.
+Some KSP-specific rendering features are not exported, including:
 
-Credits
-    AI applications used in the development of this project
-        ChatGPT 
-        Claude.ai
-        Github Copilot
+- Shaders
+- Materials
+- Textures (OBJ geometry only)
+- Animations
+- Particle systems
+- Lights
 
-    Kerbal Space Program is (c) Squad / Private Division.
+Only the currently active/selected part variant's meshes are exported; other variants' meshes are excluded.
+
+Some mods may generate geometry procedurally. Depending on implementation, the generated geometry may or may not appear in the export.
+
+Because KSP crafts are assembled from many overlapping meshes, additional cleanup is typically required before producing a watertight mesh suitable for reliable 3D printing.
+
+## Troubleshooting
+
+### Export fails
+
+Check the KSP log (`KSP.log`) for exception details.
+
+### Missing parts
+
+Verify that all required mods are installed and the craft loads correctly in the editor.
+
+### A mesh is missing or unexpectedly included
+
+1. Open the Renderer & Collider Diagnostics window
+2. Use the filter box to find the mesh
+3. Check whether its Export checkbox matches what you expect
+4. Click "Refresh Renderers" to rescan the current live scene state
+5. Check the `*_mesh_diagnostics.txt` file from your last export: every mesh is listed as either EXPORT or SKIP, with the specific reason it was skipped
+
+### Shrouds still appear, or a shroud is missing
+
+Some engines implement shrouds differently than the stock ModuleJettison system. Try adding a token to `shroud-exclusions.txt` (see above), or toggle the specific renderer off in the Diagnostics window.
+
+On engines that also have part variants, a shroud only detected by the name-heuristic fallback (not a real ModuleJettison shroud) will follow whatever the active variant already set, rather than being independently controlled by the global switch.
+
+### Large file sizes
+
+Large crafts can contain millions of triangles. Consider reducing the model size or simplifying the mesh in Blender before slicing.
+
+## Future Improvements
+
+Possible enhancements include:
+
+- Shared-vertex OBJ output
+- Vertex welding
+- Mesh decimation
+- Automatic watertight mesh generation
+- Automatic Boolean union
+- glTF export with materials
+- ZIP package generation
+
+## License
+
+GPLv3 (GNU General Public License version 3)
+
+## Disclaimer
+
+This project is provided as-is without warranty. Use at your own risk.
+
+## Credits
+
+**AI applications used in the development of this project:**
+- ChatGPT
+- Claude.ai
+- Github Copilot
+
+Kerbal Space Program is © Squad / Private Division.
