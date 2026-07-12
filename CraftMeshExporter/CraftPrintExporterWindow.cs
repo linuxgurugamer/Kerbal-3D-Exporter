@@ -161,7 +161,7 @@ namespace CraftMeshExporter
                     using (new GUILayout.HorizontalScope())
                     {
                         GUILayout.Space(40);
-                        GUILayout.Label("colors are decorative, not real part colors)");
+                        GUILayout.Label("(colors are decorative, not real part colors)");
                     }
                 }
 
