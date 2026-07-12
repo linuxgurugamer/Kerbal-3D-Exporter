@@ -42,7 +42,7 @@
     </Reference>
     <Reference Include="SpaceTuxUtility, Version=1.0.2.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>R:\KSP\KSP_1.12.5-dev\GameData\SpaceTuxLibrary\Plugins\SpaceTuxUtility.dll</HintPath>
+      <HintPath>$(KSPDIR)\GameData\SpaceTuxLibrary\Plugins\SpaceTuxUtility.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <!--
