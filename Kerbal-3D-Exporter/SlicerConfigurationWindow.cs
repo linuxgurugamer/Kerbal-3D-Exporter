@@ -117,12 +117,12 @@ namespace Kerbal_3D_Exporter
                     using (new GUILayout.HorizontalScope())
                     {
 
-                        GUI.enabled = CraftPrintExporterWindow.GetDefaultOutputDirectory() != config.OutputDirectory;
+                        GUI.enabled = Utils.GetDefaultOutputDirectory != config.OutputDirectory;
                         using (new GUILayout.HorizontalScope())
                         {
                             GUILayout.FlexibleSpace();
                             if (GUILayout.Button("Use Default Folder"))
-                                config.OutputDirectory = CraftPrintExporterWindow.GetDefaultOutputDirectory();
+                                config.OutputDirectory = Utils.GetDefaultOutputDirectory;
                             GUILayout.FlexibleSpace();
                         }
                         GUI.enabled = true;

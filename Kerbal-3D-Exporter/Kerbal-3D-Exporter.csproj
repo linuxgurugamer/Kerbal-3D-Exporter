@@ -84,6 +84,7 @@
     <Compile Include="InstructionWriter.cs" />
     <Compile Include="LaunchClampUtilities.cs" />
     <Compile Include="MeshCleanup.cs" />
+    <Compile Include="MeshDumpWriter.cs" />
     <Compile Include="MeshCollector.cs" />
     <Compile Include="ModuleCraftPrintExporter.cs" />
     <Compile Include="ObjWriter.cs" />
@@ -100,6 +101,7 @@
     <Compile Include="ThreeMfWriter.cs" />
     <Compile Include="Triangle.cs" />
     <Compile Include="ToolbarButton.cs" />
+    <Compile Include="Utils.cs" />
     <Compile Include="VariantSnapshotUtilities.cs" />
     <Compile Include="ViewerLauncher.cs" />
   </ItemGroup>
@@ -108,8 +110,6 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>AssemblyVersion.cs</LastGenOutput>
     </Content>
-    <Content Include="Icons\toolbar-icon.png" />
-    <Content Include="Icons\toolbar-icon-24.png" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />

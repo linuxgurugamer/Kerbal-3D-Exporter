@@ -1,3 +1,4 @@
+using System.IO;
 using KSP.UI.Screens;
 using ToolbarControl_NS;
 using UnityEngine;
@@ -54,8 +55,8 @@ namespace Kerbal_3D_Exporter
         public const string MODNAME = "Kerbal 3D Exporter";
 
         // GameDatabase-style paths: relative to GameData, no file extension.
-        private const string StockIconPath = "Kerbal-3D-Exporter/PluginData/toolbar-icon";
-        private const string BlizzyIconPath = "Kerbal-3D-Exporter/PluginData/toolbar-icon-24";
+        private const string StockIcon = "toolbar-icon";
+        private const string BlizzyIcon = "toolbar-icon-24";
 
         static private ToolbarControl toolbarControl = null;
 
@@ -78,8 +79,8 @@ namespace Kerbal_3D_Exporter
                 ApplicationLauncher.AppScenes.VAB | ApplicationLauncher.AppScenes.SPH | ApplicationLauncher.AppScenes.FLIGHT,
                 MODID,
                 "craftMeshExporterButton",
-                StockIconPath,
-                BlizzyIconPath,
+                Path.Combine(Utils.GetIconPath, StockIcon),
+                Path.Combine(Utils.GetIconPath, BlizzyIcon),
                 MODNAME);
 
         }

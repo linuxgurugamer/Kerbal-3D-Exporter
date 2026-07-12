@@ -20,6 +20,7 @@ namespace Kerbal_3D_Exporter
             bool export3mf,
             bool threeMfPerPart,
             bool exportStp,
+            bool dumpMesh,
             bool showShrouds,
             bool excludeLaunchClamps,
             List<EngineShroudOption> engineShroudOptions,
@@ -43,6 +44,7 @@ namespace Kerbal_3D_Exporter
             ctx.Export3mf = export3mf;
             ctx.ThreeMfPerPart = threeMfPerPart;
             ctx.ExportStp = exportStp;
+            ctx.DumpMesh = dumpMesh;
             ctx.ShowShrouds = showShrouds;
             ctx.ExcludeLaunchClamps = excludeLaunchClamps;
             ctx.EngineShroudOptions = engineShroudOptions ?? new List<EngineShroudOption>();
@@ -202,7 +204,7 @@ namespace Kerbal_3D_Exporter
             Status(ctx, "Preparing output folder.");
 
             if (string.IsNullOrEmpty(ctx.OutputDir))
-                ctx.OutputDir = Path.Combine(KSPUtil.ApplicationRootPath, "GameData/Kerbal-3D-Exporter/Models");
+                ctx.OutputDir = Utils.GetDefaultOutputDirectory;
 
             Directory.CreateDirectory(ctx.OutputDir);
 
@@ -212,6 +214,7 @@ namespace Kerbal_3D_Exporter
             ctx.ObjFile = Path.Combine(ctx.OutputDir, ctx.CraftName + suffix + ".obj");
             ctx.ThreeMfFile = Path.Combine(ctx.OutputDir, ctx.CraftName + suffix + ".3mf");
             ctx.StpFile = Path.Combine(ctx.OutputDir, ctx.CraftName + suffix + ".stp");
+            ctx.MeshDumpFile = Path.Combine(ctx.OutputDir, ctx.CraftName + suffix + ".k3dm");
 
             Status(ctx, "Output folder ready: " + ctx.OutputDir);
 #if EXPORT_EXCLUSION_RULE_DEFINED
@@ -302,6 +305,12 @@ namespace Kerbal_3D_Exporter
             Status(ctx, "Removing duplicate triangles.");
             MeshCleanup.RemoveDuplicateTriangles(ctx.Triangles);
             Status(ctx, "Remaining triangles: " + ctx.Triangles.Count);
+
+            // Dumped HERE, at the tail of cleanup, because this is the exact triangle soup every
+            // writer downstream receives. Dumping any earlier would capture geometry the writers
+            // never actually see, and the whole point of the dump is to reproduce their input.
+            if (ctx.DumpMesh)
+                WriteMeshDump(ctx);
 
             if (ctx.ExportStl)
                 ctx.Stage = ExportStage.WriteStl;
@@ -479,6 +488,30 @@ namespace Kerbal_3D_Exporter
 
             ctx.Stage = ExportStage.Finished;
             SetProgress(ctx, 18);
+        }
+
+        private static void WriteMeshDump(ExportContext ctx)
+        {
+            // Swallowed like WriteMeshDiagnostics: a diagnostic dump failing must never take a
+            // real export down with it. The user asked for an STL; they get their STL.
+            try
+            {
+                if (string.IsNullOrEmpty(ctx.MeshDumpFile))
+                    return;
+
+                MeshDumpWriter.Write(
+                    ctx.MeshDumpFile,
+                    ctx.Triangles,
+                    ctx.CraftName,
+                    ctx.UserScale,
+                    ctx.PartNames);
+
+                Status(ctx, "Mesh dump written: " + ctx.MeshDumpFile);
+            }
+            catch (Exception e)
+            {
+                Status(ctx, "Mesh dump failed (export continues): " + e.Message);
+            }
         }
 
         private static void WriteMeshDiagnostics(ExportContext ctx)

@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using UnityEngine;
 
 using static Kerbal_3D_Exporter.Kerbal3DExporter_ToolbarRegistration;
@@ -7,71 +8,102 @@ namespace Kerbal_3D_Exporter
 {
     public class SlicerConfiguration
     {
-        private const string SELECTED_SLICER_KEY = "STLExporter_SelectedSlicer";
-        private const string SELECTED_SLICER_PATH_KEY = "STLExporter_SelectedSlicerPath";
+        private const string CONFIG_NODE = "SlicerConfiguration";
 
-        private const string SELECTED_SLICER_START_MENU_SEARCH_KEY = "STLExporter_SelectedSlicerStartMenuSearch";
-        private const string USE_START_MENU_SEARCH_FOR_SLICER_KEY = "STLExporter_UseStartMenuSearchForSlicer";
+        private static readonly string ConfigFile =Utils.GetSlicerConfigurationFilePath;
 
-        private const string OUTPUT_DIRECTORY = "OutputDirectory";
+        public string SelectedSlicerName { get; set; } = "";
+        public string SelectedSlicerPath { get; set; } = "";
 
-        public string SelectedSlicerName { get; set; }
-        public string SelectedSlicerPath { get; set; }
-        public string SelectedSlicerStartMenuSearch { get; set; }   
-        public bool UseStartMenuSearchForSlicer { get; set; }=false;
+        public string SelectedSlicerStartMenuSearch { get; set; } = "";
+        public bool UseStartMenuSearchForSlicer { get; set; }
 
-        public string OutputDirectory { get; set; }
-
+        public string OutputDirectory { get; set; } = "";
 
         /// <summary>
-        /// Saves the current configuration to PlayerPrefs
+        /// Save the configuration to PluginData.
         /// </summary>
         public void SaveConfiguration()
         {
-            Log.Info("SaveConfiguration: Saving slicer configuration to PlayerPrefs");
+            Log.Info("Saving slicer configuration");
 
-            PlayerPrefs.SetString(SELECTED_SLICER_KEY, SelectedSlicerName ?? "");
-            PlayerPrefs.SetString(SELECTED_SLICER_PATH_KEY, SelectedSlicerPath ?? "");
+            ConfigNode root = new ConfigNode();
+            ConfigNode node = root.AddNode(CONFIG_NODE);
 
-            PlayerPrefs.SetString(SELECTED_SLICER_START_MENU_SEARCH_KEY, SelectedSlicerStartMenuSearch ?? "");
-            PlayerPrefs.SetInt(USE_START_MENU_SEARCH_FOR_SLICER_KEY, UseStartMenuSearchForSlicer ? 1 : 0);
+            node.AddValue(nameof(SelectedSlicerName), SelectedSlicerName);
+            node.AddValue(nameof(SelectedSlicerPath), SelectedSlicerPath);
+            node.AddValue(nameof(SelectedSlicerStartMenuSearch), SelectedSlicerStartMenuSearch);
+            node.AddValue(nameof(UseStartMenuSearchForSlicer), UseStartMenuSearchForSlicer);
+            node.AddValue(nameof(OutputDirectory), OutputDirectory);
 
-            PlayerPrefs.SetString(OUTPUT_DIRECTORY, OutputDirectory ?? "");
+            Directory.CreateDirectory(Path.GetDirectoryName(ConfigFile));
 
-            PlayerPrefs.Save();
+            root.Save(ConfigFile);
         }
 
         /// <summary>
-        /// Loads the configuration from PlayerPrefs
+        /// Load the configuration from PluginData.
         /// </summary>
         public void LoadConfiguration()
         {
-            Log.Info("LoadConfiguration: Loading slicer configuration from PlayerPrefs");
+            Log.Info("Loading slicer configuration");
 
-            SelectedSlicerName = PlayerPrefs.GetString(SELECTED_SLICER_KEY, "");
-            SelectedSlicerPath = PlayerPrefs.GetString(SELECTED_SLICER_PATH_KEY, "");
-
-            SelectedSlicerStartMenuSearch = PlayerPrefs.GetString(SELECTED_SLICER_START_MENU_SEARCH_KEY, "");
-            UseStartMenuSearchForSlicer = PlayerPrefs.GetInt(USE_START_MENU_SEARCH_FOR_SLICER_KEY, 0) == 1;
-
-            OutputDirectory = PlayerPrefs.GetString(OUTPUT_DIRECTORY, "");
-            if (OutputDirectory == "")
+            if (!File.Exists(ConfigFile))
             {
-                OutputDirectory = CraftPrintExporterWindow.GetDefaultOutputDirectory();
+                OutputDirectory = Utils.GetDefaultOutputDirectory;
+                return;
             }
+
+            ConfigNode root = ConfigNode.Load(ConfigFile);
+
+            if (root == null)
+            {
+                OutputDirectory = Utils.GetDefaultOutputDirectory;
+                return;
+            }
+
+            ConfigNode node = root.GetNode(CONFIG_NODE);
+
+            if (node == null)
+            {
+                OutputDirectory = Utils.GetDefaultOutputDirectory;
+                return;
+            }
+
+            SelectedSlicerName =
+                node.GetValue(nameof(SelectedSlicerName)) ?? "";
+
+            SelectedSlicerPath =
+                node.GetValue(nameof(SelectedSlicerPath)) ?? "";
+
+            SelectedSlicerStartMenuSearch =
+                node.GetValue(nameof(SelectedSlicerStartMenuSearch)) ?? "";
+
+            bool.TryParse(
+                node.GetValue(nameof(UseStartMenuSearchForSlicer)),
+                out bool useSearch);
+
+            UseStartMenuSearchForSlicer = useSearch;
+
+            OutputDirectory =
+                node.GetValue(nameof(OutputDirectory)) ?? "";
+
+            if (string.IsNullOrEmpty(OutputDirectory))
+                OutputDirectory = Utils.GetDefaultOutputDirectory;
         }
 
-        /// <summary>
-        /// Checks if a slicer has been configured
-        /// </summary>
         public bool IsConfigured()
         {
-            return (!string.IsNullOrEmpty(SelectedSlicerName) && !string.IsNullOrEmpty(SelectedSlicerPath)) ||
-                (UseStartMenuSearchForSlicer && !string.IsNullOrEmpty(SelectedSlicerStartMenuSearch));
+            return
+                (!string.IsNullOrEmpty(SelectedSlicerName) &&
+                 !string.IsNullOrEmpty(SelectedSlicerPath))
+                ||
+                (UseStartMenuSearchForSlicer &&
+                 !string.IsNullOrEmpty(SelectedSlicerStartMenuSearch));
         }
 
         /// <summary>
-        /// Clears the current configuration
+        /// Reset to defaults and remove the config file.
         /// </summary>
         public void Clear()
         {
@@ -79,15 +111,12 @@ namespace Kerbal_3D_Exporter
             SelectedSlicerPath = "";
             SelectedSlicerStartMenuSearch = "";
             UseStartMenuSearchForSlicer = false;
-            PlayerPrefs.DeleteKey(SELECTED_SLICER_KEY);
-            PlayerPrefs.DeleteKey(SELECTED_SLICER_PATH_KEY);
-            PlayerPrefs.DeleteKey(SELECTED_SLICER_START_MENU_SEARCH_KEY);
-            PlayerPrefs.DeleteKey(USE_START_MENU_SEARCH_FOR_SLICER_KEY);
-            PlayerPrefs.DeleteKey(OUTPUT_DIRECTORY);
-            PlayerPrefs.Save();
+
+            OutputDirectory =
+                Utils.GetDefaultOutputDirectory;
+
+            if (File.Exists(ConfigFile))
+                File.Delete(ConfigFile);
         }
-
-        ////////////////////////////
-
     }
 }

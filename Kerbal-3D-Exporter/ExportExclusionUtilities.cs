@@ -9,7 +9,7 @@ namespace Kerbal_3D_Exporter
     {
         public static string GetExclusionFilePath()
         {
-            return Path.Combine(KSPUtil.ApplicationRootPath, "GameData/Kerbal-3D-Exporter/shroud-exclusions.txt");
+            return Path.Combine(Utils.GetModDir, "shroud-exclusions.txt");
         }
 
         public static List<ExportExclusionRule> LoadRules(Action<string> status)

@@ -12,6 +12,10 @@ namespace Kerbal_3D_Exporter
         public bool Export3mf;
         public bool ThreeMfPerPart;
         public bool ExportStp;
+
+        // Debug: dump the collected triangle soup (with PartIndex intact) for offline analysis.
+        // Not an export format -- it produces no printable file. See MeshDumpWriter.
+        public bool DumpMesh;
         public bool ShowShrouds;
         public bool ExcludeLaunchClamps;
         public string ViewerExePath;
@@ -29,6 +33,7 @@ namespace Kerbal_3D_Exporter
         public string ObjFile;
         public string ThreeMfFile;
         public string StpFile;
+        public string MeshDumpFile;
 
         public List<Part> Parts;
         public string SceneDescription;

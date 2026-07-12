@@ -40,6 +40,7 @@ namespace Kerbal_3D_Exporter
         private bool export3mf;
         private bool threeMfPerPart = true;
         private bool exportStp;
+        private bool dumpMesh;
         private bool showShrouds = true;
         private bool excludeLaunchClamps = true;
         private string viewerExePathText = string.Empty;
@@ -133,6 +134,7 @@ namespace Kerbal_3D_Exporter
                         exportStl = GUILayout.Toggle(exportStl, "Export STL");
                         exportObj = GUILayout.Toggle(exportObj, "Export OBJ");
                         exportStp = GUILayout.Toggle(exportStp, "Export STEP (.stp) - CAD, not printing. Large files.");
+                        dumpMesh = GUILayout.Toggle(dumpMesh, "Dump mesh (.k3dm) - debug / bug reports, not printable");
                         export3mf = GUILayout.Toggle(export3mf, "Export 3MF");
                     }
 
@@ -572,9 +574,9 @@ namespace Kerbal_3D_Exporter
 
             scaleText = scale.ToString("0.###", CultureInfo.InvariantCulture);
 
-            if (!exportStl && !exportObj && !export3mf && !exportStp)
+            if (!exportStl && !exportObj && !export3mf && !exportStp && !dumpMesh)
             {
-                AddStatus("Select at least one export format: STL, OBJ, 3MF, or STEP.");
+                AddStatus("Select at least one export format: STL, OBJ, 3MF, STEP, or a mesh dump.");
                 return;
             }
 
@@ -616,6 +618,7 @@ namespace Kerbal_3D_Exporter
                 export3mf,
                 threeMfPerPart,
                 exportStp,
+                dumpMesh,
                 showShrouds,
                 excludeLaunchClamps,
                 CloneEngineOptions(),
@@ -839,7 +842,7 @@ namespace Kerbal_3D_Exporter
             showWindow = true;
 
             if (string.IsNullOrEmpty(slicerConfig.OutputDirectory))
-                slicerConfig.OutputDirectory = GetDefaultOutputDirectory();
+                slicerConfig.OutputDirectory = Utils.GetDefaultOutputDirectory;
 
             RefreshEngineList(false);
             if (showRendererDiagnostics)
@@ -864,11 +867,6 @@ namespace Kerbal_3D_Exporter
             CraftPrintExporterWindow win = FindObjectOfType<CraftPrintExporterWindow>();
             if (win != null)
                 win.Close();
-        }
-
-        public static string GetDefaultOutputDirectory()
-        {
-            return Path.Combine(KSPUtil.ApplicationRootPath, "GameData/Kerbal-3D-Exporter/Models");
         }
 
         private static string ResolveOutputDirectory(string text)
