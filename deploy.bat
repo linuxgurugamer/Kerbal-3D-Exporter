@@ -8,7 +8,7 @@ rem VERSIONFILE is the name of the version file, usually the same as GAMEDATA,
 rem    but not always
 
 set H=%KSPDIR%
-set GAMEDIR=CraftMeshExporter
+set GAMEDIR=Kerbal-3D-Exporter
 set GAMEDATA="GameData"
 set VERSIONFILE=%GAMEDIR%.version
 

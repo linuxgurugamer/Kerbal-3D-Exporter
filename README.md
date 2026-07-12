@@ -33,9 +33,9 @@ Install the mod into your KSP installation:
 
 ```
 GameData/
-  CraftMeshExporter/
+  Kerbal-3D-Exporter/
     Plugins/
-      CraftMeshExporter.dll
+      Kerbal-3D-Exporter.dll
     Icons/
       toolbar-icon.png
       toolbar-icon-24.png
@@ -187,9 +187,9 @@ Colliders with no material default to excluded automatically. Use "Disable colli
 - "Disable colliders without a material" / "Re-enable all colliders" bulk-toggle every collider row that has no material (in practice, every collider row)
 - Export automatically refreshes this list before building the model, so these settings take effect even if this window was never opened
 
-## shroud-exclusions.txt
+## shroud-exclusions.txt (currently disabled)
 
-Optional file at `GameData/CraftMeshExporter/shroud-exclusions.txt`.
+Optional file at `GameData/Kerbal-3D-Exporter/shroud-exclusions.txt`.
 
 Lets you specify additional PartName/Path/Material tokens to treat as shroud/fairing geometry. Applies only when shrouds/fairings are being hidden for that part or engine (i.e., it refines the shroud-hiding heuristics—it is not a general-purpose always-exclude list).
 
@@ -200,7 +200,7 @@ Use the generated `*_mesh_diagnostics.txt` file to find the exact tokens to add.
 All exported files are written to:
 
 ```
-GameData/CraftMeshExporter/Models/
+GameData/Kerbal-3D-Exporter/Models/
 ```
 
 **Example (from the VAB/SPH):**

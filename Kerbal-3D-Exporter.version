@@ -1,0 +1,21 @@
+{
+  "NAME": "Kerbal-3D-Exporter",
+  "URL": "",
+  "DOWNLOAD": "https://github.com/linuxgurugamer/Kerbal-3D-Exporter/releases",
+  "GITHUB": {
+    "USERNAME": "linuxgurugamer",
+    "REPOSITORY": "Kerbal-3D-Exporter",
+    "ALLOW_PRE_RELEASE": true
+  },
+  "VERSION": {
+    "MAJOR": 0,
+    "MINOR": 0,
+    "PATCH": 1,
+    "BUILD": 0
+  },
+  "KSP_VERSION_MIN": {
+    "MAJOR": 1,
+    "MINOR": 12,
+    "PATCH": 99
+  }
+} 
