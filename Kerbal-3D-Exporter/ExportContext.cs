@@ -15,7 +15,9 @@ namespace Kerbal_3D_Exporter
 
         // Debug: dump the collected triangle soup (with PartIndex intact) for offline analysis.
         // Not an export format -- it produces no printable file. See MeshDumpWriter.
+#if false
         public bool DumpMesh;
+#endif
         public bool ShowShrouds;
         public bool ExcludeLaunchClamps;
         public string ViewerExePath;

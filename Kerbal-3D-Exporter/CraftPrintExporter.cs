@@ -44,7 +44,9 @@ namespace Kerbal_3D_Exporter
             ctx.Export3mf = export3mf;
             ctx.ThreeMfPerPart = threeMfPerPart;
             ctx.ExportStp = exportStp;
+#if false
             ctx.DumpMesh = dumpMesh;
+#endif
             ctx.ShowShrouds = showShrouds;
             ctx.ExcludeLaunchClamps = excludeLaunchClamps;
             ctx.EngineShroudOptions = engineShroudOptions ?? new List<EngineShroudOption>();
@@ -286,7 +288,9 @@ namespace Kerbal_3D_Exporter
                 ctx.MeshDiagnostics,
                 ctx.PartNames);
             Status(ctx, "Collected raw triangles: " + ctx.Triangles.Count);
+#if false
             WriteMeshDiagnostics(ctx);
+#endif
             ctx.Stage = ExportStage.RemoveBadTriangles;
             SetProgress(ctx, 6);
         }
@@ -309,8 +313,10 @@ namespace Kerbal_3D_Exporter
             // Dumped HERE, at the tail of cleanup, because this is the exact triangle soup every
             // writer downstream receives. Dumping any earlier would capture geometry the writers
             // never actually see, and the whole point of the dump is to reproduce their input.
+#if false
             if (ctx.DumpMesh)
                 WriteMeshDump(ctx);
+#endif
 
             if (ctx.ExportStl)
                 ctx.Stage = ExportStage.WriteStl;
@@ -490,6 +496,7 @@ namespace Kerbal_3D_Exporter
             SetProgress(ctx, 18);
         }
 
+#if false
         private static void WriteMeshDump(ExportContext ctx)
         {
             // Swallowed like WriteMeshDiagnostics: a diagnostic dump failing must never take a
@@ -530,6 +537,7 @@ namespace Kerbal_3D_Exporter
                 Status(ctx, "Failed writing mesh diagnostics. See KSP log.");
             }
         }
+#endif
 
         private static void SafeRestoreShrouds(ExportContext ctx)
         {

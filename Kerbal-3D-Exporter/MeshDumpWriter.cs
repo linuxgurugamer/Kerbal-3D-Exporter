@@ -1,3 +1,4 @@
+#if false
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -102,3 +103,4 @@ namespace Kerbal_3D_Exporter
         }
     }
 }
+#endif
