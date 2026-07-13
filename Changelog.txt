@@ -1,4 +1,7 @@
 Changelog
 
+0.0.1.1
+	Disabled the toggles about dumping the debug mesh
+
 0.0.1
 	Initial release

@@ -40,7 +40,9 @@ namespace Kerbal_3D_Exporter
         private bool export3mf;
         private bool threeMfPerPart = true;
         private bool exportStp;
+#if false
         private bool dumpMesh;
+#endif
         private bool showShrouds = true;
         private bool excludeLaunchClamps = true;
         private string viewerExePathText = string.Empty;
@@ -135,7 +137,9 @@ namespace Kerbal_3D_Exporter
                         exportStl = GUILayout.Toggle(exportStl, "Export STL");
                         exportObj = GUILayout.Toggle(exportObj, "Export OBJ");
                         exportStp = GUILayout.Toggle(exportStp, "Export STEP (.stp) - CAD, not printing. Large files.");
+#if false
                         dumpMesh = GUILayout.Toggle(dumpMesh, "Dump mesh (.k3dm) - debug / bug reports, not printable");
+#endif
                         export3mf = GUILayout.Toggle(export3mf, "Export 3MF");
                     }
 
@@ -575,7 +579,11 @@ namespace Kerbal_3D_Exporter
 
             scaleText = scale.ToString("0.###", CultureInfo.InvariantCulture);
 
-            if (!exportStl && !exportObj && !export3mf && !exportStp && !dumpMesh)
+            if (!exportStl && !exportObj && !export3mf && !exportStp
+#if false
+                && !dumpMesh
+#endif
+                )
             {
                 AddStatus("Select at least one export format: STL, OBJ, 3MF, STEP, or a mesh dump.");
                 return;
@@ -619,7 +627,9 @@ namespace Kerbal_3D_Exporter
                 export3mf,
                 threeMfPerPart,
                 exportStp,
+#if false
                 dumpMesh,
+#endif
                 showShrouds,
                 excludeLaunchClamps,
                 CloneEngineOptions(),

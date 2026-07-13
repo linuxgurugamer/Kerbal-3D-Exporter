@@ -20,7 +20,9 @@ namespace Kerbal_3D_Exporter
             bool export3mf,
             bool threeMfPerPart,
             bool exportStp,
+#if false
             bool dumpMesh,
+#endif
             bool showShrouds,
             bool excludeLaunchClamps,
             List<EngineShroudOption> engineShroudOptions,
