@@ -1,5 +1,8 @@
 Changelog
 
+0.0.1.2 (unreleased)
+	Renamed dll for better CKAN compatibility
+
 0.0.1.1
 	Disabled the toggles about dumping the debug mesh
 

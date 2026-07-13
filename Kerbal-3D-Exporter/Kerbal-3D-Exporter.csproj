@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Kerbal_3D_Exporter</RootNamespace>
-    <AssemblyName>Kerbal-3D-Exporter</AssemblyName>
+    <AssemblyName>Kerbal3DExporter</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
