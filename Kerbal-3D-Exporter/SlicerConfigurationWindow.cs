@@ -112,6 +112,13 @@ namespace Kerbal_3D_Exporter
                     }
                     GUILayout.FlexibleSpace();
 
+                    GUILayout.Space(10);
+                }
+                else
+                {
+                    GUILayout.Label("<color=orange>Select a slicer from the list</color>",
+                        new GUIStyle(GUI.skin.label) { richText = true });
+                }
 
                     GUILayout.Label("Output Folder");
                     config.OutputDirectory = GUILayout.TextField(config.OutputDirectory);
@@ -129,13 +136,6 @@ namespace Kerbal_3D_Exporter
                         GUI.enabled = true;
                     }
 
-                    GUILayout.Space(10);
-                }
-                else
-                {
-                    GUILayout.Label("<color=orange>Select a slicer from the list</color>",
-                        new GUIStyle(GUI.skin.label) { richText = true });
-                }
 
                 GUILayout.Space(10);
 
