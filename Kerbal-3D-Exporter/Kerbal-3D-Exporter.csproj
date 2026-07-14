@@ -108,6 +108,7 @@
     <Compile Include="ToolbarButton.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="VariantSnapshotUtilities.cs" />
+    <Compile Include="VesselDimensions.cs" />
     <Compile Include="ViewerLauncher.cs" />
   </ItemGroup>
   <ItemGroup>
