@@ -212,6 +212,7 @@ namespace Kerbal_3D_Exporter
         /// </summary>
         private static StartMenuEntry ParseShortcut(string shortcutPath)
         {
+#if false
             IShellLink shellLink = null;
             try
             {
@@ -251,6 +252,9 @@ namespace Kerbal_3D_Exporter
                     catch { }
                 }
             }
+#else
+            return CreateShortcutEntryFromPath(shortcutPath);
+#endif
         }
 
         /// <summary>

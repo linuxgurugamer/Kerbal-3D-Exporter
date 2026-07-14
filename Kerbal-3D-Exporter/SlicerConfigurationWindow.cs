@@ -15,6 +15,7 @@ namespace Kerbal_3D_Exporter
         private SlicerLocator.FoundSlicerInfo selectedSlicer;
         private Vector2 slicerScrollPosition;
 
+        bool changed = false;
 
         public void OnEnable()
         {
@@ -43,7 +44,7 @@ namespace Kerbal_3D_Exporter
             {
                 GUILayout.Label("Available Slicers & Viewers", new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold });
                 GUILayout.Label("<color=orange>• Green = Installed | Gray = Not Found</color>",
-                    Utils.LabelRichTextFont11Style);
+                    Utils.labelRichTextFont11Style);
                 GUILayout.Space(8);
                 // Display all supported slicers
                 var allSlicers = SlicerLocator.GetAllSupportedSlicers();
@@ -78,18 +79,20 @@ namespace Kerbal_3D_Exporter
                     if (isInstalled)
                     {
                         GUILayout.Label($"<color=lime>Status: INSTALLED</color>",
-                            Utils.LabelRichTextFont11Style);
-                        GUILayout.Label($"Path: {selectedSlicer.Pathzzz}");
+                            Utils.labelRichTextFont11Style);
                     }
                     else
                     {
                         GUILayout.Label($"<color=red>Status: NOT INSTALLED</color>",
-                            Utils.LabelRichTextFont11Style);
+                            Utils.labelRedBoldStyle);
                         GUILayout.Label("Click website link below to download.");
                     }
 
                     GUILayout.FlexibleSpace();
                     GUILayout.Label("STL Viewer / Slicer Executable");
+                    bool oUseStartMenuSearch = config.UseStartMenuSearchForSlicer;
+                    string oStartMenuSearch = config.SelectedSlicerStartMenuSearch;
+                    string oSelectedSlicerPath = config.SelectedSlicerPath;
                     using (new GUILayout.HorizontalScope())
                     {
                         using (new GUILayout.VerticalScope())
@@ -110,6 +113,10 @@ namespace Kerbal_3D_Exporter
                             }
                         }
                     }
+                    if (oUseStartMenuSearch != config.UseStartMenuSearchForSlicer ||
+                        oStartMenuSearch != config.SelectedSlicerStartMenuSearch ||
+                        oSelectedSlicerPath != config.SelectedSlicerPath)
+                        changed = true;
                     GUILayout.FlexibleSpace();
 
                     GUILayout.Space(10);
@@ -120,25 +127,42 @@ namespace Kerbal_3D_Exporter
                         Utils.labelRichTextStyle);
                 }
 
-                    GUILayout.Label("Output Folder");
-                    config.OutputDirectory = GUILayout.TextField(config.OutputDirectory);
+                GUILayout.Label("Output Folder");
+                config.OutputDirectory = GUILayout.TextField(config.OutputDirectory);
+                using (new GUILayout.HorizontalScope())
+                {
+                    if (Utils.GetDefaultOutputDirectory != config.OutputDirectory)
+                        changed = true;
+                    GUI.enabled = Utils.GetDefaultOutputDirectory != config.OutputDirectory;
+
                     using (new GUILayout.HorizontalScope())
                     {
-
-                        GUI.enabled = Utils.GetDefaultOutputDirectory != config.OutputDirectory;
-                        using (new GUILayout.HorizontalScope())
+                        GUILayout.FlexibleSpace();
+                        if (GUILayout.Button("Use Default Folder"))
                         {
-                            GUILayout.FlexibleSpace();
-                            if (GUILayout.Button("Use Default Folder"))
-                                config.OutputDirectory = Utils.GetDefaultOutputDirectory;
-                            GUILayout.FlexibleSpace();
+                            config.OutputDirectory = Utils.GetDefaultOutputDirectory;
+                            changed = true;
                         }
-                        GUI.enabled = true;
+                        GUILayout.FlexibleSpace();
                     }
+                    GUI.enabled = true;
+                }
 
 
                 GUILayout.Space(10);
-
+                if (changed)
+                {
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        GUILayout.FlexibleSpace();
+                        bool visible = (int)(Time.realtimeSinceStartup % 3) == 0;
+                        if (visible)
+                            GUILayout.Label("Current Configuration NOT SAVED", Utils.labelYellowBoldStyle);
+                        else
+                            GUILayout.Label(" ");
+                        GUILayout.FlexibleSpace();
+                    }
+                }
                 // Buttons
                 using (new GUILayout.HorizontalScope())
                 {
@@ -165,8 +189,10 @@ namespace Kerbal_3D_Exporter
                     }
                     GUI.enabled = true;
 
-                    if (GUILayout.Button("Close", GUILayout.Width(100)))
+                    if (GUILayout.Button(changed ? "Cancel" : "Close", GUILayout.Width(100)))
                     {
+                        if (changed)
+                            config.LoadConfiguration();
                         Close();
                     }
                 }
@@ -216,7 +242,7 @@ namespace Kerbal_3D_Exporter
                 selectedSlicer = new SlicerLocator.FoundSlicerInfo
                 {
                     Name = slicerInfo.name,
-                    Pathzzz = "", // Empty path for uninstalled
+                    Path = "", // Empty path for uninstalled
                     StartMenuSearchName = "",
                     UseStartMenuSearch = false,
                     HomeUrl = slicerInfo.homeUrl,
@@ -225,9 +251,11 @@ namespace Kerbal_3D_Exporter
             }
 
             config.SelectedSlicerName = slicerInfo.name;
-            config.SelectedSlicerPath = installed?.Pathzzz ?? "";
-            config.SelectedSlicerStartMenuSearch = installed.StartMenuSearchName;
-            config.UseStartMenuSearchForSlicer = installed.UseStartMenuSearch;
+            config.SelectedSlicerPath = installed?.Path ?? "";
+            config.SelectedSlicerStartMenuSearch = installed?.StartMenuSearchName ?? "";
+            config.UseStartMenuSearchForSlicer = installed?.UseStartMenuSearch ?? false;
+
+            changed = true;
         }
 
         private void RefreshSlicers()

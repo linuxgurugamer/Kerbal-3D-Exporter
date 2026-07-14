@@ -1,5 +1,14 @@
 Changelog
 
+0.0.2
+	Fixed nullref when selecting uninstalled slicer
+	Added display of model size
+	Added saving the scale value
+	Added saving the model units
+	Added support for Kerbal Changelog
+	Changed Close button on config window to Cancen if any unsaved changes
+	Added warning about config not saved
+
 0.0.1.2 
 	Renamed dll for better CKAN compatibility
 	Moved all "new GUIStyle" out of the runtime loops to eliminate memory leaks

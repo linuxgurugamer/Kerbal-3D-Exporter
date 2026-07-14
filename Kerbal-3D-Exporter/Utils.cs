@@ -5,13 +5,20 @@ using UnityEngine;
 namespace Kerbal_3D_Exporter
 {
 
-    internal static class Utils
+    public static class Utils
     {
         public static GUIStyle solidWindowStyle;
         public static GUIStyle whiteFontStyle;
         public static GUIStyle labelRichTextStyle;
-        public static GUIStyle LabelRichTextFont11Style;
+        public static GUIStyle labelRichTextFont11Style;
 
+        public static GUIStyle labelRedBoldStyle, labelYellowBoldStyle;
+
+        public static GUIStyle rightAlignedLabel;
+
+        public static GUIStyle darkBoxStyle;
+        public static GUIStyle darkBoxTextStyle;
+        public static Texture2D darkBoxTexture;
 
         public static Texture2D windowBackgroundTexture;
         public static Texture2D paneBackgroundTexture;
@@ -24,28 +31,68 @@ namespace Kerbal_3D_Exporter
 
             GUIStyle baseWindowStyle = HighLogic.Skin.window;
 
+
             solidWindowStyle = new GUIStyle(baseWindowStyle);
-            solidWindowStyle.normal.background = windowBackgroundTexture;
-            solidWindowStyle.onNormal.background = windowBackgroundTexture;
-            solidWindowStyle.active.background = windowBackgroundTexture;
-            solidWindowStyle.focused.background = windowBackgroundTexture;
-            solidWindowStyle.onActive.background = windowBackgroundTexture;
-            solidWindowStyle.onFocused.background = windowBackgroundTexture;
+            solidWindowStyle.normal.background =
+                solidWindowStyle.onNormal.background =
+                solidWindowStyle.active.background =
+                solidWindowStyle.focused.background =
+                solidWindowStyle.onActive.background =
+                solidWindowStyle.onFocused.background = windowBackgroundTexture;
 
             whiteFontStyle = new GUIStyle(GUI.skin.label);
-            whiteFontStyle.normal.textColor = Color.white;
-            whiteFontStyle.hover.textColor = Color.white;
-            whiteFontStyle.active.textColor = Color.white;
-            whiteFontStyle.focused.textColor = Color.white;
+            whiteFontStyle.normal.textColor =
+                whiteFontStyle.hover.textColor =
+                whiteFontStyle.active.textColor =
+                whiteFontStyle.focused.textColor =
+                whiteFontStyle.onNormal.textColor =
+                whiteFontStyle.onHover.textColor =
+                whiteFontStyle.onActive.textColor =
+                whiteFontStyle.onFocused.textColor = Color.white;
 
-            whiteFontStyle.onNormal.textColor = Color.white;
-            whiteFontStyle.onHover.textColor = Color.white;
-            whiteFontStyle.onActive.textColor = Color.white;
-            whiteFontStyle.onFocused.textColor = Color.white;
+            labelRedBoldStyle = new GUIStyle(GUI.skin.label);
+            labelRedBoldStyle.normal.textColor =
+                labelRedBoldStyle.hover.textColor =
+                labelRedBoldStyle.active.textColor =
+                labelRedBoldStyle.focused.textColor =
+                labelRedBoldStyle.onNormal.textColor =
+                labelRedBoldStyle.onHover.textColor =
+                labelRedBoldStyle.onActive.textColor =
+                labelRedBoldStyle.onFocused.textColor = Color.red;
+            labelRedBoldStyle.fontStyle = FontStyle.Bold;
+
+
+            labelYellowBoldStyle = new GUIStyle(GUI.skin.label);
+            labelYellowBoldStyle.normal.textColor =
+                labelYellowBoldStyle.hover.textColor =
+                labelYellowBoldStyle.active.textColor =
+                labelYellowBoldStyle.focused.textColor =
+                labelYellowBoldStyle.onNormal.textColor =
+                labelYellowBoldStyle.onHover.textColor =
+                labelYellowBoldStyle.onActive.textColor =
+                labelYellowBoldStyle.onFocused.textColor = Color.yellow;
+            labelYellowBoldStyle.fontStyle = FontStyle.Bold;
+
 
 
             labelRichTextStyle = new GUIStyle(GUI.skin.label) { richText = true };
-            LabelRichTextFont11Style = new GUIStyle(labelRichTextStyle) { fontSize = 11 };
+            labelRichTextFont11Style = new GUIStyle(labelRichTextStyle) { fontSize = 11 };
+
+            darkBoxTexture = new Texture2D(1, 1);
+            darkBoxTexture.SetPixel(0, 0, new Color32(30, 30, 30, 255));
+            darkBoxTexture.Apply();
+
+            darkBoxStyle = new GUIStyle(GUI.skin.box);
+            darkBoxStyle.normal.background = darkBoxTexture;
+            darkBoxStyle.padding = new RectOffset(10, 10, 10, 10);
+
+            darkBoxTextStyle = new GUIStyle(GUI.skin.label);
+            darkBoxTextStyle.normal.textColor = Color.white;
+
+            rightAlignedLabel = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleRight
+            };
 
             ExportWinID = WindowHelper.NextWindowId("ExportWinID");
             ConfigWinID = WindowHelper.NextWindowId("ConfigWinID");
@@ -85,6 +132,29 @@ namespace Kerbal_3D_Exporter
             get
             {
                 return Path.Combine(GetModDir, "PluginData", "SlicerConfiguration.cfg");
+            }
+        }
+
+        public enum LengthUnit { Meters, Inches, Millimeters, Centimeters }
+
+        public static readonly string[] LengthUnitAbbreviations = { "m", "in", "mm", "cm" }; // The order here must match the order in the enum above
+
+        public static double ConvertMeters(double meters, LengthUnit unit)
+        {
+            switch (unit)
+            {
+                case LengthUnit.Inches:
+                    return meters * 39.3700787401575;
+
+                case LengthUnit.Millimeters:
+                    return meters * 1000.0;
+
+                case LengthUnit.Centimeters:
+                    return meters * 100.0;
+
+                case LengthUnit.Meters:
+                default:
+                    return meters;
             }
         }
     }

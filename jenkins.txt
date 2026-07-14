@@ -37,6 +37,7 @@
 3:Kerbal-3D-Exporter.version,GameData/Kerbal-3D-Exporter
 3:LICENSE.md,GameData/Kerbal-3D-Exporter
 3:README.md,GameData/Kerbal-3D-Exporter
+3:Changelog.cfg,GameData/Kerbal-3D-Exporter
 
 
 

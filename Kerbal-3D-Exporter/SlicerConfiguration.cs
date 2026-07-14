@@ -20,6 +20,11 @@ namespace Kerbal_3D_Exporter
 
         public string OutputDirectory { get; set; } = "";
 
+        public Utils.LengthUnit Units { get; set; } = Utils.LengthUnit.Inches;
+
+        public string ScaleText { get; set; } = "0.01";
+
+
         /// <summary>
         /// Save the configuration to PluginData.
         /// </summary>
@@ -35,6 +40,9 @@ namespace Kerbal_3D_Exporter
             node.AddValue(nameof(SelectedSlicerStartMenuSearch), SelectedSlicerStartMenuSearch);
             node.AddValue(nameof(UseStartMenuSearchForSlicer), UseStartMenuSearchForSlicer);
             node.AddValue(nameof(OutputDirectory), OutputDirectory);
+
+            node.AddValue(nameof(Units), (int)Units);
+            node.AddValue(nameof(ScaleText), ScaleText);
 
             Directory.CreateDirectory(Path.GetDirectoryName(ConfigFile));
 
@@ -90,6 +98,22 @@ namespace Kerbal_3D_Exporter
 
             if (string.IsNullOrEmpty(OutputDirectory))
                 OutputDirectory = Utils.GetDefaultOutputDirectory;
+
+            ScaleText = node.GetValue(nameof(ScaleText)) ?? "0.01";
+
+            string value = node.GetValue(nameof(Units));
+            try
+            {
+                Units = (Utils.LengthUnit)Enum.Parse(typeof(Utils.LengthUnit), value, true);
+            }
+            catch
+            {
+                Log.Warn(
+                    "Invalid value '" + value +
+                    "' for Units. Using " + Utils.LengthUnit.Inches);
+
+                Units = Utils.LengthUnit.Inches;
+            }
         }
 
         public bool IsConfigured()
@@ -114,6 +138,8 @@ namespace Kerbal_3D_Exporter
 
             OutputDirectory =
                 Utils.GetDefaultOutputDirectory;
+            ScaleText = "0.01";
+            Units = Utils.LengthUnit.Inches;
 
             if (File.Exists(ConfigFile))
                 File.Delete(ConfigFile);

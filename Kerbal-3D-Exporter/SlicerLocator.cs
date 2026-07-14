@@ -121,7 +121,7 @@ namespace Kerbal_3D_Exporter
         public class FoundSlicerInfo
         {
             public string Name { get; set; }
-            public string Pathzzz { get; set; }
+            public string Path { get; set; }
             public string StartMenuSearchName { get; set; }
             public bool UseStartMenuSearch { get; set; } = false;
             public string HomeUrl { get; set; }
@@ -145,7 +145,7 @@ namespace Kerbal_3D_Exporter
                     foundSlicers.Add(new FoundSlicerInfo
                     {
                         Name = slicerInfo.name,
-                        Pathzzz = "", 
+                        Path = "", 
                         StartMenuSearchName = slicerInfo.startMenuSearchName,
                         UseStartMenuSearch = true,
                         HomeUrl = slicerInfo.homeUrl,
@@ -188,7 +188,7 @@ namespace Kerbal_3D_Exporter
                         foundSlicers.Add(new FoundSlicerInfo
                         {
                             Name = slicerInfo.name,
-                            Pathzzz = finalPath,  // Always .exe, never .lnk
+                            Path = finalPath,  // Always .exe, never .lnk
                             HomeUrl = slicerInfo.homeUrl,
                             //StartMenuSearchName = slicerInfo.startMenuSearchName,
                             UseStartMenuSearch = false,
@@ -233,7 +233,7 @@ namespace Kerbal_3D_Exporter
             Log.Info("Found applications:");
             for (int i = 0; i < slicers.Count; i++)
             {
-                Log.Info($"[{i}] {slicers[i].Name} - {slicers[i].Pathzzz}");
+                Log.Info($"[{i}] {slicers[i].Name} - {slicers[i].Path}");
             }
 
             return slicers.FirstOrDefault();

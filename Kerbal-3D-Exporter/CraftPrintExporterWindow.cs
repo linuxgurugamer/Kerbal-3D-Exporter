@@ -34,7 +34,7 @@ namespace Kerbal_3D_Exporter
         private bool exporting;
         private bool cancelRequested;
 
-        private string scaleText = "0.01";
+        //private string scaleText = "0.01";
         private bool exportStl = true;
         private bool exportObj;
         private bool export3mf;
@@ -107,14 +107,79 @@ namespace Kerbal_3D_Exporter
             using (new GUILayout.VerticalScope())
             {
                 GUI.enabled = !exporting;
-
-                GUILayout.Label("Export Scale");
+                var scaleText = slicerConfig.ScaleText;
                 using (new GUILayout.HorizontalScope())
                 {
-                    GUILayout.Label("Scale:", GUILayout.Width(80));
+                    GUILayout.Label("Export Scale:", GUILayout.Width(140));
                     scaleText = GUILayout.TextField(scaleText, GUILayout.Width(100));
                     GUILayout.Label("Minimum: " + MIN_EXPORT_SCALE.ToString("0.###", CultureInfo.InvariantCulture));
                 }
+                using (new GUILayout.HorizontalScope())
+                {
+                    GUILayout.Label("Model Units:");
+                    Array values = Enum.GetValues(typeof(Utils.LengthUnit));
+                    string numFormat = "0.#";
+                    var oldUnit = slicerConfig.Units;
+                    for (int i = 0; i < values.Length; i++)
+                    {
+                        Utils.LengthUnit unit = (Utils.LengthUnit)values.GetValue(i);
+                        bool b = (slicerConfig.Units == unit);
+                        switch (unit)
+                        {
+                            case Utils.LengthUnit.Meters:
+                                b = GUILayout.Toggle(b, "");
+                                GUILayout.Label("Meters");
+                                if (b) numFormat = "0.###";
+                                break;
+                            case Utils.LengthUnit.Centimeters:
+                                b = GUILayout.Toggle(b, "");
+                                GUILayout.Label("Centimeters");
+                                break;
+                            case Utils.LengthUnit.Millimeters:
+                                b = GUILayout.Toggle(b, "");
+                                GUILayout.Label("Millimeters");
+                                if (b) numFormat = "0";
+                                break;
+                            case Utils.LengthUnit.Inches:
+                                b = GUILayout.Toggle(b, "");
+                                GUILayout.Label("Inches");
+                                break;
+                        }
+                        if (b) slicerConfig.Units = unit;
+                        GUILayout.Space(20);
+                    }
+                    if (scaleText != slicerConfig.ScaleText ||
+                        slicerConfig.Units != oldUnit)
+                    {
+                        slicerConfig.ScaleText = scaleText;
+                        slicerConfig.SaveConfiguration();
+                    }
+                    using (new GUILayout.VerticalScope(Utils.darkBoxStyle))
+                    {
+                        if (!float.TryParse(scaleText, NumberStyles.Float, CultureInfo.InvariantCulture, out var scale))
+                        {
+                            AddStatus("Invalid scale value.");
+                        }
+                        VesselDimensions.TryGetCurrentDimensions(out var dimensions);
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            GUILayout.Label("<color=white>Height: </color>", GUILayout.Width(60));
+                            GUILayout.Label("<color=#00FF00>" + Utils.ConvertMeters(scale * dimensions.Height, slicerConfig.Units).ToString(numFormat, CultureInfo.InvariantCulture) + " " + Utils.LengthUnitAbbreviations[(int)slicerConfig.Units] + "</color>", Utils.rightAlignedLabel, GUILayout.Width(80));
+                        }
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            GUILayout.Label("<color=white>Width: </color>", GUILayout.Width(60));
+                            GUILayout.Label("<color=#00FF00>" + Utils.ConvertMeters(scale * dimensions.Width, slicerConfig.Units).ToString(numFormat, CultureInfo.InvariantCulture) + " " + Utils.LengthUnitAbbreviations[(int)slicerConfig.Units] + "</color>", Utils.rightAlignedLabel, GUILayout.Width(80));
+                        }
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            GUILayout.Label("<color=white>Length: </color>", GUILayout.Width(60));
+                            GUILayout.Label("<color=#00FF00>" + Utils.ConvertMeters(scale * dimensions.Length, slicerConfig.Units).ToString(numFormat, CultureInfo.InvariantCulture) + " " + Utils.LengthUnitAbbreviations[(int)slicerConfig.Units] + "</color>", Utils.rightAlignedLabel, GUILayout.Width(80));
+                        }
+                    }
+                    GUILayout.FlexibleSpace();
+                }
+
                 GUILayout.Space(8);
 
                 //GUILayout.Label("STL Viewer / Slicer Executable");
@@ -189,15 +254,21 @@ namespace Kerbal_3D_Exporter
                 using (new GUILayout.HorizontalScope())
                 {
                     if (GUILayout.Button(showEngineList ? "Hide Engine List" : "Show Engine List"))
+                    {
                         showEngineList = !showEngineList;
-
+                        if (!showEngineList)
+                            windowRect = new Rect(300, 80, WINDOW_WIDTH, WINDOW_HEIGHT);
+                    }
                     if (GUILayout.Button(showRendererDiagnostics ? "Hide Renderer Diagnostics" : "Show Renderer Diagnostics"))
                     {
                         showRendererDiagnostics = !showRendererDiagnostics;
                         if (showRendererDiagnostics)
                             RefreshRendererDiagnostics(true);
                         else
+                        {
+                            windowRect = new Rect(300, 80, WINDOW_WIDTH, WINDOW_HEIGHT);
                             RendererHighlightUtility.ClearHighlight();
+                        }
                     }
 
                     if (GUILayout.Button("Refresh Renderers"))
@@ -578,7 +649,7 @@ namespace Kerbal_3D_Exporter
         {
             float scale;
 
-            if (!float.TryParse(scaleText, NumberStyles.Float, CultureInfo.InvariantCulture, out scale))
+            if (!float.TryParse(slicerConfig.ScaleText, NumberStyles.Float, CultureInfo.InvariantCulture, out scale))
             {
                 AddStatus("Invalid scale value.");
                 return;
@@ -587,7 +658,7 @@ namespace Kerbal_3D_Exporter
             if (scale < MIN_EXPORT_SCALE)
                 scale = MIN_EXPORT_SCALE;
 
-            scaleText = scale.ToString("0.###", CultureInfo.InvariantCulture);
+            slicerConfig.ScaleText = scale.ToString("0.###", CultureInfo.InvariantCulture);
 
             if (!exportStl && !exportObj && !export3mf && !exportStp
 #if false
