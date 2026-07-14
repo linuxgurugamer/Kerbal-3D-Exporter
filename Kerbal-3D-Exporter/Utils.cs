@@ -1,8 +1,6 @@
-﻿using System.IO;
+﻿using SpaceTuxUtility;
+using System.IO;
 using UnityEngine;
-using SpaceTuxUtility;
-
-using static Kerbal_3D_Exporter.Kerbal3DExporter_ToolbarRegistration;
 
 namespace Kerbal_3D_Exporter
 {
@@ -10,6 +8,11 @@ namespace Kerbal_3D_Exporter
     internal static class Utils
     {
         public static GUIStyle solidWindowStyle;
+        public static GUIStyle whiteFontStyle;
+        public static GUIStyle labelRichTextStyle;
+        public static GUIStyle LabelRichTextFont11Style;
+
+
         public static Texture2D windowBackgroundTexture;
         public static Texture2D paneBackgroundTexture;
 
@@ -28,6 +31,21 @@ namespace Kerbal_3D_Exporter
             solidWindowStyle.focused.background = windowBackgroundTexture;
             solidWindowStyle.onActive.background = windowBackgroundTexture;
             solidWindowStyle.onFocused.background = windowBackgroundTexture;
+
+            whiteFontStyle = new GUIStyle(GUI.skin.label);
+            whiteFontStyle.normal.textColor = Color.white;
+            whiteFontStyle.hover.textColor = Color.white;
+            whiteFontStyle.active.textColor = Color.white;
+            whiteFontStyle.focused.textColor = Color.white;
+
+            whiteFontStyle.onNormal.textColor = Color.white;
+            whiteFontStyle.onHover.textColor = Color.white;
+            whiteFontStyle.onActive.textColor = Color.white;
+            whiteFontStyle.onFocused.textColor = Color.white;
+
+
+            labelRichTextStyle = new GUIStyle(GUI.skin.label) { richText = true };
+            LabelRichTextFont11Style = new GUIStyle(labelRichTextStyle) { fontSize = 11 };
 
             ExportWinID = WindowHelper.NextWindowId("ExportWinID");
             ConfigWinID = WindowHelper.NextWindowId("ConfigWinID");

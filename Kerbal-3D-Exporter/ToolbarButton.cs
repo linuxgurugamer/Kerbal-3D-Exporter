@@ -1,10 +1,8 @@
-using System.IO;
 using KSP.UI.Screens;
+using KSP_Log;
+using System.IO;
 using ToolbarControl_NS;
 using UnityEngine;
-
-using KSP_Log;
-using static Kerbal_3D_Exporter.Kerbal3DExporter_ToolbarRegistration;
 
 
 namespace Kerbal_3D_Exporter
@@ -34,16 +32,23 @@ namespace Kerbal_3D_Exporter
     public class Kerbal3DExporter_ToolbarRegistration : MonoBehaviour
     {
         public static Log Log;
-
+        bool initted = false;
         public void Start()
         {
             Log = new Log("Kerbal-3D-Exporter");
             Log.SetLevel(Log.LEVEL.INFO);
             Log.Info("Logging initialized");
 
-            Utils.InitStyles();
-
             ToolbarControl.RegisterMod(Kerbal3DExporter_ToolbarButton.MODID, Kerbal3DExporter_ToolbarButton.MODNAME);
+        }
+
+        void OnGUI()
+        {
+            if (!initted)
+            {
+                Utils.InitStyles();
+                initted = true;
+            }
         }
     }
 

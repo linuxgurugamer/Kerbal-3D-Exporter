@@ -1,7 +1,20 @@
 Changelog
 
-0.0.1.2 (unreleased)
+0.0.1.2 
 	Renamed dll for better CKAN compatibility
+	Moved all "new GUIStyle" out of the runtime loops to eliminate memory leaks
+	Added options to control the orientation of the output file	
+		Set in the exporter window, under **Orientation in the exported file**.
+
+		- **Upright (Z up)** — *default*. Rotate +90° about X. A vertical rocket exports vertical.
+		- **Upright, turned 90°** — same standing pose, a quarter turn about the vertical axis. Useful
+		  when a wide asymmetric craft (wings, radiators, solar arrays) fouls the bed one way but fits
+		  the other.
+		- **Lay flat along X** — craft lies along the bed. Use when it is taller than the printer's build
+		  height, which for a 30 cm rocket and a 25 cm printer is most of the time.
+		- **As in game (Y up)** — the old behaviour, raw KSP axes. Kept for anyone whose downstream
+		  workflow already compensates.
+	Fixed NullRef which occurred when the user does NOT have Papa's Best STL Viewer installed, and was preventing the config window from opening
 
 0.0.1.1
 	Disabled the toggles about dumping the debug mesh

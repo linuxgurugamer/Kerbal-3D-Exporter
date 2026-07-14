@@ -108,6 +108,11 @@ namespace Kerbal_3D_Exporter
                 name = "Papa's Best STL Viewer",
                 homeUrl = "https://github.com/Jinja2/papas-best-stl-viewer",
                 startMenuSearchName = "Papa",
+                WinPaths = new[] {
+                    @"C:\Program Files\Papa's Best STL Viewer",
+                    @"C:\Program Files (x86)\Papa's Best STL Viewer",
+                    Environment.ExpandEnvironmentVariables(@"%APPDATA%\PapasBestSTLViewer")
+                },
                 MacPaths = new[] { "/Applications/Papa's Best STL Viewer.app" },
                 LinuxPaths = new[] { "/usr/bin/papas-best-stl-viewer", "/snap/bin/papas-best-stl-viewer" }
             }

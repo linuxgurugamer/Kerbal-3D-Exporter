@@ -45,6 +45,11 @@ namespace Kerbal_3D_Exporter
 #endif
         private bool showShrouds = true;
         private bool excludeLaunchClamps = true;
+
+        // KSP is Y-up, every slicer is Z-up. Defaulting to Upright means a rocket that stands
+        // up in the VAB stands up in the slicer, which is what everybody expects and almost
+        // never what they used to get.
+        private ExportOrientation orientation = ExportOrientation.UprightZUp;
         private string viewerExePathText = string.Empty;
         private string viewerStartMenuSearchText = string.Empty;
         private bool useStartMenuSearchForViewer = false;
@@ -127,7 +132,7 @@ namespace Kerbal_3D_Exporter
                 if (slicerConfig != null && slicerConfig.IsConfigured())
                 {
                     GUILayout.Label($"<color=lime>Configured: {slicerConfig.SelectedSlicerName}</color>",
-                        new GUIStyle(GUI.skin.label) { richText = true });
+                        Utils.labelRichTextStyle);
                 }
 
                 using (new GUILayout.HorizontalScope())
@@ -154,6 +159,7 @@ namespace Kerbal_3D_Exporter
                         }
 
                         excludeLaunchClamps = GUILayout.Toggle(excludeLaunchClamps, "Exclude launch clamps");
+
                     }
                 }
 
@@ -171,6 +177,10 @@ namespace Kerbal_3D_Exporter
                         GUILayout.Label("(colors are decorative, not real part colors)");
                     }
                 }
+
+                GUILayout.Space(4);
+                GUILayout.Label("Orientation in the exported file");
+                DrawOrientationSelector();
 
 
 
@@ -632,6 +642,7 @@ namespace Kerbal_3D_Exporter
 #endif
                 showShrouds,
                 excludeLaunchClamps,
+                orientation,
                 CloneEngineOptions(),
                 BuildDisabledRendererKeySet(),
                 BuildDisabledRendererObjectSet(),
@@ -789,6 +800,38 @@ namespace Kerbal_3D_Exporter
                 if (engineOptions[i] != null)
                     engineOptions[i].ShowShroud = enabled;
             }
+        }
+
+        private void DrawOrientationSelector()
+        {
+            // Radio-style list rather than a dropdown: KSP's IMGUI has no real combo box, and
+            // four options is few enough that showing them all costs nothing and saves a click.
+            ExportOrientation[] all =
+            {
+                ExportOrientation.UprightZUp,
+                ExportOrientation.UprightRotated90,
+                ExportOrientation.LayFlatAlongX,
+                ExportOrientation.AsInGame,
+            };
+            using (new GUILayout.HorizontalScope())
+            {
+                //GUILayout.Space(20);
+                foreach (ExportOrientation o in all)
+                {
+                    GUILayout.Space(20);
+                    bool selected = (orientation == o);
+                    bool now = GUILayout.Toggle(selected, "");
+                    GUILayout.Label(ExportOrientationUtilities.DisplayName(o), Utils.whiteFontStyle);
+
+                    // Only act on a click that TURNS ONE ON. IMGUI toggles report their own state,
+                    // so without this the user could untick the selected one and end up with no
+                    // orientation chosen at all.
+                    if (now && !selected)
+                        orientation = o;
+                }
+            }
+
+            GUILayout.Label("   " + ExportOrientationUtilities.Description(orientation));
         }
 
         private List<EngineShroudOption> CloneEngineOptions()

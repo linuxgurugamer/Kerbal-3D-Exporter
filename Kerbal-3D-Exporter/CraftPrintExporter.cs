@@ -25,6 +25,7 @@ namespace Kerbal_3D_Exporter
 #endif
             bool showShrouds,
             bool excludeLaunchClamps,
+            ExportOrientation orientation,
             List<EngineShroudOption> engineShroudOptions,
             HashSet<string> disabledRendererKeys,
             HashSet<Renderer> disabledRenderers,
@@ -51,6 +52,7 @@ namespace Kerbal_3D_Exporter
 #endif
             ctx.ShowShrouds = showShrouds;
             ctx.ExcludeLaunchClamps = excludeLaunchClamps;
+            ctx.Orientation = orientation;
             ctx.EngineShroudOptions = engineShroudOptions ?? new List<EngineShroudOption>();
             ctx.DisabledRendererKeys = disabledRendererKeys ?? new HashSet<string>();
             ctx.DisabledRenderers = disabledRenderers ?? new HashSet<Renderer>();
@@ -288,7 +290,8 @@ namespace Kerbal_3D_Exporter
                 ctx.DisabledRenderers,
                 ctx.DisabledRendererTransforms,
                 ctx.MeshDiagnostics,
-                ctx.PartNames);
+                ctx.PartNames,
+                ctx.Orientation);
             Status(ctx, "Collected raw triangles: " + ctx.Triangles.Count);
 #if false
             WriteMeshDiagnostics(ctx);

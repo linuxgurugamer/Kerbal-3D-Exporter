@@ -20,6 +20,10 @@ namespace Kerbal_3D_Exporter
 #endif
         public bool ShowShrouds;
         public bool ExcludeLaunchClamps;
+
+        // KSP is Y-up; every slicer is Z-up. Without a rotation a VAB rocket exports lying on
+        // its side. See ExportOrientation.cs.
+        public ExportOrientation Orientation = ExportOrientation.UprightZUp;
         public string ViewerExePath;
         public string ViewerStartMenuSearch;
         public bool UseStartMenuSearchForViewer;

@@ -84,6 +84,7 @@
     <Compile Include="CraftPrintExporterWindow.cs" />
     <Compile Include="EngineUtilities.cs" />
     <Compile Include="ExportContext.cs" />
+    <Compile Include="ExportOrientation.cs" />
     <Compile Include="ExportStage.cs" />
     <Compile Include="InstructionWriter.cs" />
     <Compile Include="LaunchClampUtilities.cs" />

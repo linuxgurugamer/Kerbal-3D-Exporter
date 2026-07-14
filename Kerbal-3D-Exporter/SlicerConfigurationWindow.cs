@@ -43,7 +43,7 @@ namespace Kerbal_3D_Exporter
             {
                 GUILayout.Label("Available Slicers & Viewers", new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold });
                 GUILayout.Label("<color=orange>• Green = Installed | Gray = Not Found</color>",
-                    new GUIStyle(GUI.skin.label) { richText = true, fontSize = 11 });
+                    Utils.LabelRichTextFont11Style);
                 GUILayout.Space(8);
                 // Display all supported slicers
                 var allSlicers = SlicerLocator.GetAllSupportedSlicers();
@@ -73,18 +73,18 @@ namespace Kerbal_3D_Exporter
 
                     GUILayout.Box("");
                     GUILayout.Label($"<b>Selected:</b> {selectedSlicer.Name}",
-                        new GUIStyle(GUI.skin.label) { richText = true });
+                        Utils.labelRichTextStyle);
 
                     if (isInstalled)
                     {
                         GUILayout.Label($"<color=lime>Status: INSTALLED</color>",
-                            new GUIStyle(GUI.skin.label) { richText = true, fontSize = 11 });
+                            Utils.LabelRichTextFont11Style);
                         GUILayout.Label($"Path: {selectedSlicer.Pathzzz}");
                     }
                     else
                     {
                         GUILayout.Label($"<color=red>Status: NOT INSTALLED</color>",
-                            new GUIStyle(GUI.skin.label) { richText = true, fontSize = 11 });
+                            Utils.LabelRichTextFont11Style);
                         GUILayout.Label("Click website link below to download.");
                     }
 
@@ -117,7 +117,7 @@ namespace Kerbal_3D_Exporter
                 else
                 {
                     GUILayout.Label("<color=orange>Select a slicer from the list</color>",
-                        new GUIStyle(GUI.skin.label) { richText = true });
+                        Utils.labelRichTextStyle);
                 }
 
                     GUILayout.Label("Output Folder");
@@ -186,7 +186,7 @@ namespace Kerbal_3D_Exporter
             {
                 // Status indicator
                 var statusColor = isInstalled ? "<color=lime>●</color>" : "<color=gray>●</color>";
-                GUILayout.Label(statusColor, new GUIStyle(GUI.skin.label) { richText = true }, GUILayout.Width(20));
+                GUILayout.Label(statusColor, Utils.labelRichTextStyle, GUILayout.Width(20));
 
                 // Button to select slicer
                 var displayText = isSelected ? $"{slicerInfo.name} ✓" : slicerInfo.name;

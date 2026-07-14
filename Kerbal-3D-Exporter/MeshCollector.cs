@@ -26,7 +26,8 @@ namespace Kerbal_3D_Exporter
             HashSet<Renderer> disabledRenderers,
             HashSet<Transform> disabledRendererTransforms,
             List<string> diagnostics,
-            Dictionary<int, string> partNames)
+            Dictionary<int, string> partNames,
+            ExportOrientation orientation)
         {
             List<Triangle> triangles = new List<Triangle>();
             float finalScale = METERS_TO_MM * userScale;
@@ -54,6 +55,8 @@ namespace Kerbal_3D_Exporter
                 diagnostics.Add("Lines marked EXPORT are written to the model. Lines marked SKIP are not.");
                 diagnostics.Add("Use PartName and Path/Material tokens here in GameData/Kerbal-3D-Exporter/shroud-exclusions.txt");
                 diagnostics.Add("Model origin (world space, subtracted from every vertex): " + originOffset);
+                diagnostics.Add("Export orientation: " + ExportOrientationUtilities.DisplayName(orientation)
+                    + " -- " + ExportOrientationUtilities.Description(orientation));
                 diagnostics.Add("");
             }
 
@@ -122,7 +125,7 @@ namespace Kerbal_3D_Exporter
                     }
 
                     int before = triangles.Count;
-                    AddMeshTriangles(triangles, mf.sharedMesh, mf.transform, finalScale, mr, hideEngineShroud, originOffset, partIndex);
+                    AddMeshTriangles(triangles, mf.sharedMesh, mf.transform, finalScale, mr, hideEngineShroud, originOffset, partIndex, orientation);
                     AddDiagnostic(diagnostics, "EXPORT", "triangles=" + (triangles.Count - before), part, mf.transform, mf.sharedMesh, mr);
                 }
 
@@ -147,7 +150,7 @@ namespace Kerbal_3D_Exporter
                     smr.BakeMesh(baked);
 
                     int before = triangles.Count;
-                    AddMeshTriangles(triangles, baked, smr.transform, finalScale, smr, hideEngineShroud, originOffset, partIndex);
+                    AddMeshTriangles(triangles, baked, smr.transform, finalScale, smr, hideEngineShroud, originOffset, partIndex, orientation);
                     AddDiagnostic(diagnostics, "EXPORT", "triangles=" + (triangles.Count - before), part, smr.transform, baked, smr);
                 }
 
@@ -553,7 +556,8 @@ namespace Kerbal_3D_Exporter
             Renderer renderer,
             bool hideShroudSubmeshes,
             Vector3 originOffset,
-            int partIndex)
+            int partIndex,
+            ExportOrientation orientation)
         {
             Vector3[] vertices = mesh.vertices;
             Material[] materials = renderer != null ? renderer.sharedMaterials : null;
@@ -567,9 +571,21 @@ namespace Kerbal_3D_Exporter
 
                 for (int i = 0; i < tris.Length; i += 3)
                 {
-                    Vector3 a = (transform.TransformPoint(vertices[tris[i]]) - originOffset) * scale;
-                    Vector3 b = (transform.TransformPoint(vertices[tris[i + 1]]) - originOffset) * scale;
-                    Vector3 c = (transform.TransformPoint(vertices[tris[i + 2]]) - originOffset) * scale;
+                    // Orientation is applied HERE, at the one place every vertex passes through,
+                    // so STL, OBJ, 3MF, STEP and the .k3dm dump are all guaranteed to agree. Doing
+                    // it per-writer instead would mean four chances to get it wrong and four
+                    // chances for them to disagree with each other.
+                    //
+                    // Every ExportOrientation is a proper rotation (determinant +1), so triangle
+                    // winding survives untouched and no normals need flipping. An axis SWAP would
+                    // have determinant -1 -- a mirror -- and would quietly turn the whole model
+                    // inside out while still looking correct in any viewer.
+                    Vector3 a = ExportOrientationUtilities.Apply(
+                        (transform.TransformPoint(vertices[tris[i]]) - originOffset) * scale, orientation);
+                    Vector3 b = ExportOrientationUtilities.Apply(
+                        (transform.TransformPoint(vertices[tris[i + 1]]) - originOffset) * scale, orientation);
+                    Vector3 c = ExportOrientationUtilities.Apply(
+                        (transform.TransformPoint(vertices[tris[i + 2]]) - originOffset) * scale, orientation);
 
                     output.Add(new Triangle(a, b, c, partIndex));
                 }
