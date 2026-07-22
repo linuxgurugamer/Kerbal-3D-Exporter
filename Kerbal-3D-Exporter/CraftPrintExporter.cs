@@ -23,6 +23,7 @@ namespace Kerbal_3D_Exporter
 #if false
             bool dumpMesh,
 #endif
+            int smoothLevel,
             bool showShrouds,
             bool excludeLaunchClamps,
             ExportOrientation orientation,
@@ -50,6 +51,7 @@ namespace Kerbal_3D_Exporter
 #if false
             ctx.DumpMesh = dumpMesh;
 #endif
+            ctx.SmoothLevel = smoothLevel;
             ctx.ShowShrouds = showShrouds;
             ctx.ExcludeLaunchClamps = excludeLaunchClamps;
             ctx.Orientation = orientation;
@@ -324,6 +326,25 @@ namespace Kerbal_3D_Exporter
         /// Enclosing parts whose toggle is OFF, i.e. the ones whose geometry must not be
         /// exported. An enclosing part the user left ticked stays in the export as normal.
         /// </summary>
+        private static void ApplySmoothing(ExportContext ctx)
+        {
+            if (ctx.SmoothLevel < 1)
+                return;
+
+            int before = ctx.Triangles.Count;
+            int estimate = PnTessellator.EstimateTriangleCount(ctx.Triangles, ctx.SmoothLevel);
+
+            Status(ctx, "Smoothing curved surfaces: " + PnTessellator.DescribeLevel(ctx.SmoothLevel) +
+                " (~" + estimate.ToString("N0") + " triangles).");
+
+            int curved;
+            ctx.Triangles = PnTessellator.Tessellate(ctx.Triangles, ctx.SmoothLevel, out curved);
+
+            Status(ctx, "Curved triangles rebuilt: " + curved.ToString("N0") + " of " +
+                before.ToString("N0") + ". Flat geometry left untouched.");
+            Status(ctx, "Triangles after smoothing: " + ctx.Triangles.Count.ToString("N0"));
+        }
+
         private static HashSet<Part> BuildHiddenEnclosureSet(ExportContext ctx)
         {
             HashSet<Part> hidden = new HashSet<Part>();
@@ -450,6 +471,11 @@ namespace Kerbal_3D_Exporter
             Status(ctx, "Removing duplicate triangles.");
             MeshCleanup.RemoveDuplicateTriangles(ctx.Triangles);
             Status(ctx, "Remaining triangles: " + ctx.Triangles.Count);
+
+            // Tessellation runs AFTER cleanup, deliberately. Cleaning first means the expensive
+            // pass never touches degenerate or duplicate triangles, and the duplicate check
+            // compares original vertices rather than millions of generated ones.
+            ApplySmoothing(ctx);
 
             // Dumped HERE, at the tail of cleanup, because this is the exact triangle soup every
             // writer downstream receives. Dumping any earlier would capture geometry the writers

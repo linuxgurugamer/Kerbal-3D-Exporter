@@ -92,6 +92,7 @@
     <Compile Include="MeshCleanup.cs" />
     <Compile Include="MeshDumpWriter.cs" />
     <Compile Include="MeshCollector.cs" />
+    <Compile Include="PnTessellator.cs" />
     <Compile Include="PartHierarchyUtilities.cs" />
     <Compile Include="ModuleCraftPrintExporter.cs" />
     <Compile Include="ObjWriter.cs" />

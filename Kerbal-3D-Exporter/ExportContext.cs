@@ -24,6 +24,10 @@ namespace Kerbal_3D_Exporter
         // KSP is Y-up; every slicer is Z-up. Without a rotation a VAB rocket exports lying on
         // its side. See ExportOrientation.cs.
         public ExportOrientation Orientation = ExportOrientation.UprightZUp;
+
+        // 0 = off. Higher values reconstruct curved surfaces from vertex normals; see
+        // PnTessellator. Flat geometry is unaffected at any level.
+        public int SmoothLevel;
         public string ViewerExePath;
         public string ViewerStartMenuSearch;
         public bool UseStartMenuSearchForViewer;

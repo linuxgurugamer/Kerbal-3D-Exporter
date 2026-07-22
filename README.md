@@ -12,9 +12,12 @@ A Kerbal Space Program 1 editor/flight plugin for exporting the currently loaded
   - STEP / .stp (ISO 10303 AP214, faceted B-rep, for CAD rather than printing)
   - Export any combination of formats in one run
 - Adjustable export scale
+- **Export orientation**, so a rocket that stands up in the VAB stands up in the slicer instead of lying on its side
+- **Round part smoothing**, which rebuilds curved surfaces from the model's own vertex normals so tanks and nose cones stop looking polygonal
 - Model coordinates are always relative to the craft's root part (placed at 0, 0, 0), regardless of where the craft is positioned in the world
 - Launch clamps excluded from export by default (with toggle to include)
-- Collapsible engine list showing every engine with per-engine shroud/fairing toggle
+- Collapsible shroud list covering engines, procedural fairings, and parts that enclose other parts (structural tubes, engine plates, service bays), each with its own toggle
+- Automatic detection of parts that geometrically contain other parts, reported by name in the diagnostics
 - Bulk "All Shrouds On"/"All Shrouds Off" buttons
 - Collapsible Renderer & Collider Diagnostics window listing every renderer and collider-only mesh
 - Individual Export checkboxes for each mesh with live filtering and hover-to-highlight
@@ -46,8 +49,8 @@ GameData/
 ```
 
 **Dependencies:**
-- [ToolbarControl](https://github.com/linuxgurugamer/ToolbarControl) is required for the toolbar button (download separately if not already installed)
-- **(Optional)** Install the included ModuleManager patch to add the exporter to command pods
+- ToolbarControl
+- ClickthroughBlocker
 
 ## Usage
 
@@ -77,16 +80,91 @@ The exporter converts KSP's internal meter units into millimeters before applyin
 
 | Scale | Result |
 |-------|--------|
-| 1.0 | Full-size millimeter export |
-| 0.5 | Half-size |
-| 2.0 | Double-size |
-| 0.1 | 10% size |
+|  1.0  | Full-size millimeter export |
+|  0.5  | Half-size |
+|  2.0  | Double-size |
+|  0.1  | 10% size |
 
 ### Model Origin
 
 The exported model's x/y/z coordinates are always relative to the craft's root part, which is placed at exactly (0, 0, 0).
 
 Vertices come out of Unity in raw world-space coordinates (an arbitrary position in the VAB/SPH, or a position that can drift in Flight). The exporter normalizes all coordinates relative to the root part to ensure consistency.
+
+### Orientation
+
+KSP is Y-up. Every slicer is Z-up. Without a rotation, a rocket that stands proudly in the VAB
+arrives in the slicer lying on its side.
+
+| Option | Effect |
+|--------|--------|
+| **Upright (Z up)** | *Default.* A vertical rocket exports vertical. |
+| **Upright, turned 90 deg** | Same standing pose, a quarter turn about the vertical axis. Useful when a wide asymmetric craft fouls the bed one way but fits the other. |
+| **Lay flat along X** | Craft lies along the bed. Use when it is taller than the printer's build height, which for a 30 cm rocket and a 25 cm printer is most of the time. |
+| **As in game (Y up)** | The old behaviour, raw KSP axes. Kept for anyone whose downstream workflow already compensates. |
+
+Every option is a true rotation (determinant +1), so triangle winding is preserved and nothing is
+mirrored. This matters more than it sounds: the tempting shortcut of swapping the Y and Z axes has
+determinant −1. It is a mirror, not a rotation, and it silently turns the model inside out, which
+looks perfectly fine in a viewer and which a slicer will happily read as "print everything except
+the rocket".
+
+The rotation is applied once, during mesh collection, at the single point every vertex passes
+through, so STL, OBJ, 3MF, and STEP always agree.
+
+**This changed the default.** If you previously rotated the model by hand in your slicer, you no
+longer need to.
+
+### Round Part Smoothing
+
+Makes round parts round. Off by default.
+
+KSP fuel tanks are **24-sided prisms** — 15° per facet. That reads as visibly polygonal on a
+print, especially a large one.
+
+Adding vertices on its own does not fix this. Subdividing each facet gives you 48 points that all
+still lie on the same 24 flat faces: identical silhouette, double the triangles. Extra vertices
+cannot invent curvature that is not recorded anywhere.
+
+The curvature *is* recorded, in the **vertex normals**. When an artist marks a cylinder smooth,
+KSP stores normals pointing radially outward as though the surface were a true circle, even though
+the positions form a polygon. That is what makes it look round in-game under lighting, and it is a
+record of the surface the model was meant to have.
+
+This option reconstructs that surface using curved PN triangles (the same technique GPUs use for
+hardware tessellation): the three corner positions plus their three normals define a cubic Bézier
+patch, and new vertices land on the intended curve rather than on the flat chord.
+
+| Level      | Effect on curved surfaces | Max radial error on a 6.3 mm, 24-sided tank |
+|------------|---------------------------|---------------------------------------------|
+| Off        | export as modelled        | 0.054 mm                                    |
+| 1 — Low    | 4× triangles              | 0.001 mm                                    |
+| 2 — Medium | 9× triangles              | 0.001 mm                                    |
+| 3 — High   | 16× triangles             | 0.001 mm                                    |
+
+**Level 1 gets essentially all of the benefit.** Start there; go higher only if you can see a
+reason to.
+
+**Sharp edges are not affected, and there is no threshold to tune.** An artist marking an edge
+sharp *splits* the normals there, so the two sides disagree, each patch is fitted to its own flat
+normal set, and the crease stays perfectly sharp. A flat panel tessellates to itself exactly. Fins,
+panels, and hard rims come through unchanged.
+
+Only genuinely curved triangles are rebuilt — anything whose vertex normals sit within 3° of its
+face normal is passed straight through. Since most of a rocket is flat panels, the triangle count
+grows far less than the multipliers above suggest. The export log reports the split:
+
+```
+Smoothing curved surfaces: Low (4x on curved surfaces) (~180,000 triangles).
+Curved triangles rebuilt: 38,400 of 64,820. Flat geometry left untouched.
+```
+
+**Whether you need this depends on print size.** At the default 0.01 scale the worst chord error
+on a test craft was 0.05 mm, below what a 0.4 mm nozzle resolves. Print the same craft five times
+larger and it becomes 0.27 mm, which is clearly visible.
+
+Meshes with no normals come through flat. With no record of the intended surface there is nothing
+to reconstruct, and inventing a curve would be guessing.
 
 ### Export Format
 
@@ -151,11 +229,13 @@ The viewer is not launched if the export is cancelled or fails.
 
 ### Show Engine Shrouds / Fairings by Default
 
-Global master switch controlling whether engine shrouds/fairings are included in the exported model.
+Global master switch controlling whether shrouds, fairings, and enclosing shells are included in
+the exported model.
 
 When disabled, supported shroud meshes are hidden before mesh collection and restored after export.
 
-Per-engine toggles (in the Engine List) can only further disable a shroud when this is on; they cannot re-enable one when this global switch is off.
+Per-part toggles (in the Shroud List) can only further disable a shell when this is on; they cannot
+re-enable one when this global switch is off.
 
 ### Exclude Launch Clamps
 
@@ -169,12 +249,37 @@ Colliders (physics-only meshes with no MeshRenderer—that's why they're invisib
 
 Colliders with no material default to excluded automatically. Use "Disable colliders without a material" / "Re-enable all colliders" in that window to apply or undo this in bulk, or toggle them individually.
 
-## Engine List
+## Shroud List
 
-- Collapsed by default; click "Show Engine List" to expand
-- Lists every engine found on the craft with a checkbox for whether to include that engine's shroud/fairing
-- "Refresh Engine List" rescans the current craft
-- "All Shrouds On" / "All Shrouds Off" set every engine's checkbox at once
+Formerly the Engine List. It now covers every part carrying geometry that can get in the way, not
+just engines.
+
+- Collapsed by default; click "Show Shroud List" to expand
+- Lists, each with its own checkbox:
+  - **engines**, and any part carrying a stock `ModuleJettison` shroud
+  - **procedural fairings**, cargo bays, and service modules — labelled `(fairing)`
+  - **parts that geometrically enclose other parts** — structural tubes, engine plates, interstage
+    shells — labelled `(encloses N)`
+- "Refresh Shroud List" rescans the current craft
+- "All Shrouds On" / "All Shrouds Off" set every checkbox at once
+
+The two kinds behave differently, because they are different things:
+
+- An **engine** with a jettisonable shroud loses only the shroud mesh. The engine itself stays.
+- An **enclosing part** *is* the shell in the way, so unticking it removes all of that part's own
+  geometry, revealing whatever is mounted inside. Anything inside it is untouched.
+
+Enclosure detection is geometric: a part is treated as enclosing another when the inner part is
+contained across the shell's two lateral axes and overlaps along its long axis. Measuring laterally
+rather than by volume is deliberate, because an engine bell hanging out the bottom of a structural
+tube is still enclosed.
+
+It is a heuristic, so every detection is reported by name (see below) and every detected part can
+be re-ticked individually.
+
+The list is rebuilt from the craft's actual parts at export time, carrying your existing choices
+across by part reference. Adding or removing parts while the window is open therefore cannot leave
+the export running against a stale list.
 
 ## Renderer & Collider Diagnostics
 
@@ -211,7 +316,7 @@ SaturnV_printable.obj
 SaturnV_printable.3mf
 SaturnV_printable.stp
 SaturnV_printable_mesh_diagnostics.txt
-SaturnV_printable_part_diagnostics.txt
+SaturnV_printable_part_diagnostics.txt   (includes the ENCLOSING PARTS section)
 SaturnV_printable_STL_instructions.txt
 SaturnV_printable_OBJ_instructions.txt
 SaturnV_printable_3MF_instructions.txt
@@ -227,13 +332,13 @@ The exporter performs the following steps:
 1. Validate the current craft
 2. Snapshot which meshes on parts with variants are already hidden
 3. Prepare the output directory
-4. Refresh the engine list
+4. Detect enclosing parts and refresh the shroud list
 5. Apply the selected shroud visibility
 6. Write part diagnostics
 7. Collect meshes from all parts
 8. Write mesh diagnostics
 9. Remove invalid triangles
-10. Remove duplicate triangles
+10. Remove duplicate triangles, then apply round part smoothing if enabled
 11. Write STL (if selected)
 12. Write STL instructions
 13. Write OBJ (if selected)
@@ -252,7 +357,8 @@ The exported model is intended as a starting point for creating printable models
 
 **Recommended workflow:**
 
-1. Export the craft
+1. Export the craft, with **Upright (Z up)** orientation and **Round part smoothing** at level 1
+   if the model is large enough for faceting to show
 2. Import the STL or OBJ into Blender
 3. Inspect for missing or unwanted geometry
 4. Merge meshes using Boolean Union
@@ -282,6 +388,10 @@ Some mods may generate geometry procedurally. Depending on implementation, the g
 
 Because KSP crafts are assembled from many overlapping meshes, additional cleanup is typically required before producing a watertight mesh suitable for reliable 3D printing.
 
+Round part smoothing reconstructs curvature from vertex normals; it cannot recover detail that was never modelled. A part built as a genuine low-poly faceted shape stays faceted, correctly, because its normals say it is flat.
+
+Enclosure detection uses axis-aligned bounds, so it is a heuristic. A part may occasionally be flagged that you did not mean to hide; untick it in the Shroud List.
+
 ## Troubleshooting
 
 ### Export fails
@@ -302,9 +412,62 @@ Verify that all required mods are installed and the craft loads correctly in the
 
 ### Shrouds still appear, or a shroud is missing
 
-Some engines implement shrouds differently than the stock ModuleJettison system. Try adding a token to `shroud-exclusions.txt` (see above), or toggle the specific renderer off in the Diagnostics window.
+Some engines implement shrouds differently than the stock ModuleJettison system. Toggle the
+specific renderer off in the Diagnostics window, or add a token to `shroud-exclusions.txt` if that
+file is enabled in your build.
 
-On engines that also have part variants, a shroud only detected by the name-heuristic fallback (not a real ModuleJettison shroud) will follow whatever the active variant already set, rather than being independently controlled by the global switch.
+On engines that also have part variants, a shroud detected only by the name-heuristic fallback (not
+a real ModuleJettison shroud) follows whatever the active variant already set, rather than being
+independently controlled by the global switch.
+
+**Enclosing parts are the exception to that.** Structural tubes, engine plates, and fairing bases
+nearly all carry part variants, and that exemption is exactly why they could not previously be
+hidden at all. They are governed by their own entry in the Shroud List instead, regardless of
+variants. Meshes belonging to non-selected variants are still protected and stay hidden.
+
+### A part is inside a fairing or a tube and I can't get rid of the shell
+
+Untick that part in the Shroud List. It appears there labelled `(fairing)` or `(encloses N)`.
+
+If it is not listed, the geometric detection did not consider it to contain anything — check the
+`ENCLOSING PARTS` section of the part diagnostics file (below), which states plainly what was and
+was not detected.
+
+### Where enclosure detections are logged
+
+Three places, in order of usefulness:
+
+1. **`<craft>_printable_part_diagnostics.txt`**, under a section headed `ENCLOSING PARTS`. Written
+   to disk next to the model, so it survives the session. The section is always present; when
+   nothing is detected it says so explicitly, which is itself the answer if you expected a
+   detection and did not get one.
+
+   ```
+   ENCLOSING PARTS
+   ---------------
+     ENCLOSURE | Structural Tube encloses LV-909 "Terrier"
+     ENCLOSURE | AE-FF3 Fairing encloses Probodobodyne HECS
+   ```
+
+2. **`KSP.log`**, every line prefixed `[Kerbal3DExporter] ENCLOSURE |`. Attachable to a bug report:
+   `grep ENCLOSURE KSP.log`.
+
+3. **The exporter window**, but only the first five, then a pointer to the other two. The pane
+   scrolls and is destroyed when the window closes, so it is the least useful place to read this
+   after the fact.
+
+### Parts near the bottom of the craft are missing entirely
+
+This was a bug, fixed. The shroud name-heuristic used to walk *up* the transform hierarchy looking
+for shroud tokens, and KSP parents child parts underneath their parent part. Stock fairing parts
+are *named* `fairingSize1` / `fairingSize2` / `fairingSize3`, so every part attached below a
+fairing had a shroud token in its ancestor chain, "looked like a shroud", and was dropped — while
+parts above the fairing were unaffected.
+
+The heuristic now stops at the part that owns the mesh and never reads the names of parts above it.
+
+If you still see this, check the `*_mesh_diagnostics.txt` file: every mesh is listed as EXPORT or
+SKIP with the specific reason.
 
 ### Large file sizes
 
@@ -317,7 +480,9 @@ Possible enhancements include:
 - Shared-vertex OBJ output
 - Vertex welding
 - Mesh decimation
-- Automatic watertight mesh generation
+- Automatic watertight mesh generation (prototyped offline: per-part generalized winding number
+  for a free boolean union, exterior flood fill to delete internal geometry, and a signed distance
+  field for sub-voxel accuracy — not yet ported into the mod)
 - Automatic Boolean union
 - glTF export with materials
 - ZIP package generation
@@ -333,7 +498,7 @@ This project is provided as-is without warranty. Use at your own risk.
 ## Credits
 
 **AI applications used in the development of this project:**
-- ChatGPT
+- ChatGPT4
 - Claude.ai
 - Github Copilot
 

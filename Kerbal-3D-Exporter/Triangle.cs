@@ -20,12 +20,28 @@ namespace Kerbal_3D_Exporter
         // rather than duplicated. That is the behavior we want.
         public int PartIndex;
 
+        // Vertex normals, carried from the source mesh.
+        //
+        // These are what makes round parts round. A KSP tank is a 24-sided prism, but an artist
+        // marking it smooth stores normals pointing RADIALLY OUTWARD as if it were a true circle.
+        // That is a record of the surface the model was meant to have, and until now the exporter
+        // discarded it and wrote out the raw polygon. PnTessellator uses it to reconstruct the
+        // intended curve. See PnTessellator for why extra vertices alone cannot do this.
+        //
+        // Zero when the source mesh has no normals, which PnTessellator treats as flat.
+        public Vector3 Na;
+        public Vector3 Nb;
+        public Vector3 Nc;
+
         public Triangle(Vector3 a, Vector3 b, Vector3 c)
         {
             A = a;
             B = b;
             C = c;
             PartIndex = 0;
+            Na = Vector3.zero;
+            Nb = Vector3.zero;
+            Nc = Vector3.zero;
         }
 
         public Triangle(Vector3 a, Vector3 b, Vector3 c, int partIndex)
@@ -34,6 +50,21 @@ namespace Kerbal_3D_Exporter
             B = b;
             C = c;
             PartIndex = partIndex;
+            Na = Vector3.zero;
+            Nb = Vector3.zero;
+            Nc = Vector3.zero;
+        }
+
+        public Triangle(Vector3 a, Vector3 b, Vector3 c, int partIndex,
+                        Vector3 na, Vector3 nb, Vector3 nc)
+        {
+            A = a;
+            B = b;
+            C = c;
+            PartIndex = partIndex;
+            Na = na;
+            Nb = nb;
+            Nc = nc;
         }
 
         public string GetSortedKey()

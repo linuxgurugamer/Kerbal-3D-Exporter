@@ -182,7 +182,7 @@ namespace Kerbal_3D_Exporter
                 switch (extension)
                 {
                     case ".lnk":
-                        return ParseShortcut(filePath);
+                        return CreateShortcutEntryFromPath(filePath);
 
                     case ".exe":
                         return new StartMenuEntry
@@ -205,56 +205,6 @@ namespace Kerbal_3D_Exporter
                 Log.Warn($"Error parsing {filePath}: {ex.Message}");
                 return null;
             }
-        }
-
-        /// <summary>
-        /// Parses a Windows .lnk shortcut file using IShellLink COM interface
-        /// </summary>
-        private static StartMenuEntry ParseShortcut(string shortcutPath)
-        {
-#if false
-            IShellLink shellLink = null;
-            try
-            {
-                // Try the standard ShellLink class first
-                shellLink = (IShellLink)new ShellLink();
-                return ParseShortcutWithInterface(shellLink, shortcutPath);
-            }
-            catch (COMException ex) when (ex.ErrorCode == -2147221164) // CLASS_E_CLASSNOTAVAILABLE
-            {
-                Log.Warn($"ShellLink COM class not available, trying alternative: {shortcutPath}");
-
-                // Try alternative COM class
-                try
-                {
-                    shellLink = (IShellLink)new ShellLinkW();
-                    return ParseShortcutWithInterface(shellLink, shortcutPath);
-                }
-                catch (Exception ex2)
-                {
-                    Log.Warn($"Alternative ShellLink also failed: {ex2.Message}");
-                    return CreateShortcutEntryFromPath(shortcutPath);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"Error parsing shortcut {shortcutPath}: {ex.Message}");
-                return CreateShortcutEntryFromPath(shortcutPath);
-            }
-            finally
-            {
-                if (shellLink != null)
-                {
-                    try
-                    {
-                        Marshal.ReleaseComObject(shellLink);
-                    }
-                    catch { }
-                }
-            }
-#else
-            return CreateShortcutEntryFromPath(shortcutPath);
-#endif
         }
 
         /// <summary>

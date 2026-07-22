@@ -148,6 +148,8 @@ namespace Kerbal_3D_Exporter
                     GUI.enabled = true;
                 }
 
+                GUILayout.Space(10);
+                config.DebugMode = GUILayout.Toggle(config.DebugMode, "Debug Mode");
 
                 GUILayout.Space(10);
                 if (changed)

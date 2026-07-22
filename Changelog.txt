@@ -1,5 +1,12 @@
 Changelog
 
+0.0.4
+	Added round part smoothing
+	Added abilty to calculate the scale based on a target dimension
+	Added a Debug mode, which now hides the reporting buttons
+	Now automatically refreshes the renderers before every export
+	Reformatted window a bit for easier navigation
+
 0.0.3
 	Fixed issue where some parts/fairings weren't being exported properly, noticable on large complex vessels
 

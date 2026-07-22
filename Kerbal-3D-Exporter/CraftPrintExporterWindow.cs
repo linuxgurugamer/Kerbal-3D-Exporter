@@ -6,21 +6,10 @@ using System.IO;
 using UnityEngine;
 
 using static Kerbal_3D_Exporter.Kerbal3DExporter_ToolbarRegistration;
+using static Kerbal_3D_Exporter.VesselDimensions;
 
 namespace Kerbal_3D_Exporter
 {
-#if false
-    [KSPAddon(KSPAddon.Startup.EditorAny, false)]
-    public class CraftPrintExporterWindowEditor : CraftPrintExporterWindow
-    {
-    }
-
-    [KSPAddon(KSPAddon.Startup.Flight, false)]
-    public class CraftPrintExporterWindowFlight : CraftPrintExporterWindow
-    {
-    }
-#endif
-
     public class CraftPrintExporterWindow : MonoBehaviour
     {
         private const float MIN_EXPORT_SCALE = 0.001f;
@@ -42,7 +31,11 @@ namespace Kerbal_3D_Exporter
         private bool exportStp;
 #if false
         private bool dumpMesh;
+
+        // Reconstructs curved surfaces from the model's vertex normals (see PnTessellator).
+        // Off by default: it multiplies triangle count, and plenty of prints do not need it.
 #endif
+        private int smoothLevel;
         private bool showShrouds = true;
         private bool excludeLaunchClamps = true;
 
@@ -102,6 +95,9 @@ namespace Kerbal_3D_Exporter
             GUI.enabled = true;
         }
 
+        string[] targetScalesStr = { "", "", "" };
+        float[] targetScales = { 0.001f, 0.001f, 0.001f };
+        Dimensions dimensions = new Dimensions();
         private void DrawWindow(int id)
         {
             using (new GUILayout.VerticalScope())
@@ -114,45 +110,84 @@ namespace Kerbal_3D_Exporter
                     scaleText = GUILayout.TextField(scaleText, GUILayout.Width(100));
                     GUILayout.Label("Minimum: " + MIN_EXPORT_SCALE.ToString("0.###", CultureInfo.InvariantCulture));
                 }
+                string numFormat = "0.#";
                 using (new GUILayout.HorizontalScope())
                 {
-                    GUILayout.Label("Model Units:");
-                    Array values = Enum.GetValues(typeof(Utils.LengthUnit));
-                    string numFormat = "0.#";
-                    var oldUnit = slicerConfig.Units;
-                    for (int i = 0; i < values.Length; i++)
+                    using (new GUILayout.VerticalScope())
                     {
-                        Utils.LengthUnit unit = (Utils.LengthUnit)values.GetValue(i);
-                        bool b = (slicerConfig.Units == unit);
-                        switch (unit)
+                        using (new GUILayout.HorizontalScope())
                         {
-                            case Utils.LengthUnit.Meters:
-                                b = GUILayout.Toggle(b, "");
-                                GUILayout.Label("Meters");
-                                if (b) numFormat = "0.###";
-                                break;
-                            case Utils.LengthUnit.Centimeters:
-                                b = GUILayout.Toggle(b, "");
-                                GUILayout.Label("Centimeters");
-                                break;
-                            case Utils.LengthUnit.Millimeters:
-                                b = GUILayout.Toggle(b, "");
-                                GUILayout.Label("Millimeters");
-                                if (b) numFormat = "0";
-                                break;
-                            case Utils.LengthUnit.Inches:
-                                b = GUILayout.Toggle(b, "");
-                                GUILayout.Label("Inches");
-                                break;
+                            GUILayout.Label("Model Units:");
+                            Array values = Enum.GetValues(typeof(Utils.LengthUnit));
+                            var oldUnit = slicerConfig.Units;
+                            for (int i = 0; i < values.Length; i++)
+                            {
+                                Utils.LengthUnit unit = (Utils.LengthUnit)values.GetValue(i);
+                                bool b = (slicerConfig.Units == unit);
+                                switch (unit)
+                                {
+                                    case Utils.LengthUnit.Meters:
+                                        b = GUILayout.Toggle(b, "");
+                                        GUILayout.Label("Meters");
+                                        if (b) numFormat = "0.###";
+                                        break;
+                                    case Utils.LengthUnit.Centimeters:
+                                        b = GUILayout.Toggle(b, "");
+                                        GUILayout.Label("Centimeters");
+                                        break;
+                                    case Utils.LengthUnit.Millimeters:
+                                        b = GUILayout.Toggle(b, "");
+                                        GUILayout.Label("Millimeters");
+                                        if (b) numFormat = "0";
+                                        break;
+                                    case Utils.LengthUnit.Inches:
+                                        b = GUILayout.Toggle(b, "");
+                                        GUILayout.Label("Inches");
+                                        break;
+                                }
+                                if (b) slicerConfig.Units = unit;
+                                GUILayout.Space(20);
+                            }
+                            if (scaleText != slicerConfig.ScaleText ||
+                                slicerConfig.Units != oldUnit)
+                            {
+                                slicerConfig.ScaleText = scaleText;
+                                slicerConfig.SaveConfiguration();
+                            }
                         }
-                        if (b) slicerConfig.Units = unit;
                         GUILayout.Space(20);
-                    }
-                    if (scaleText != slicerConfig.ScaleText ||
-                        slicerConfig.Units != oldUnit)
-                    {
-                        slicerConfig.ScaleText = scaleText;
-                        slicerConfig.SaveConfiguration();
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            GUILayout.Space(40);
+                            GUILayout.Label("Calculate Scale based on a Target Dimension");
+                        }
+                        foreach (DimensionType dimensionType in Enum.GetValues(typeof(DimensionType)))
+                        {
+                            using (new GUILayout.HorizontalScope())
+                            {
+                                GUILayout.Space(30);
+                                GUILayout.Label($"Target {dimensionType}:", GUILayout.Width(100));
+                                targetScalesStr[(int)dimensionType] = GUILayout.TextField(targetScalesStr[(int)dimensionType], GUILayout.Width(90));
+                                if (float.TryParse(targetScalesStr[(int)dimensionType], NumberStyles.Float, CultureInfo.InvariantCulture, out var desiredDimension) &&
+                                    desiredDimension > 0)
+                                {
+                                    targetScales[(int)dimensionType] = desiredDimension;
+
+                                    if (GUILayout.Button($"Calculate for {dimensionType}", GUILayout.Width(225)))
+                                    {
+                                        float scale = VesselDimensions.CalculateScaleForDimension(
+                                            dimensions,
+                                            desiredDimension,
+                                            slicerConfig.Units,
+                                            dimensionType);
+                                        if (scale >= MIN_EXPORT_SCALE)
+                                            slicerConfig.ScaleText = scaleText = scale.ToString();
+                                        else
+                                            slicerConfig.ScaleText = scaleText = MIN_EXPORT_SCALE.ToString();
+                                    }
+                                }
+                            }
+                        }
                     }
                     using (new GUILayout.VerticalScope(Utils.darkBoxStyle))
                     {
@@ -160,7 +195,7 @@ namespace Kerbal_3D_Exporter
                         {
                             AddStatus("Invalid scale value.");
                         }
-                        VesselDimensions.TryGetCurrentDimensions(out var dimensions);
+                        VesselDimensions.TryGetCurrentDimensions(out dimensions);
                         using (new GUILayout.HorizontalScope())
                         {
                             GUILayout.Label("<color=white>Height: </color>", GUILayout.Width(60));
@@ -180,7 +215,8 @@ namespace Kerbal_3D_Exporter
                     GUILayout.FlexibleSpace();
                 }
 
-                GUILayout.Space(8);
+                DrawHorizontalLine(4);
+
 
                 //GUILayout.Label("STL Viewer / Slicer Executable");
                 using (new GUILayout.HorizontalScope())
@@ -202,14 +238,16 @@ namespace Kerbal_3D_Exporter
 
                 using (new GUILayout.HorizontalScope())
                 {
-                    using (new GUILayout.VerticalScope())
+                    using (new GUILayout.VerticalScope(GUILayout.Width(400)))
                     {
                         exportStl = GUILayout.Toggle(exportStl, "Export STL");
                         exportObj = GUILayout.Toggle(exportObj, "Export OBJ");
-                        exportStp = GUILayout.Toggle(exportStp, "Export STEP (.stp) - CAD, not printing. Large files.");
+                        exportStp = GUILayout.Toggle(exportStp, "Export STEP (.stp) for CAD (large files)");
 #if false
                         dumpMesh = GUILayout.Toggle(dumpMesh, "Dump mesh (.k3dm) - debug / bug reports, not printable");
 #endif
+
+                        GUILayout.Space(4);
                         export3mf = GUILayout.Toggle(export3mf, "Export 3MF");
                     }
 
@@ -243,94 +281,105 @@ namespace Kerbal_3D_Exporter
                     }
                 }
 
-                GUILayout.Space(4);
+                DrawHorizontalLine(4);
+
+                GUILayout.Label("Round part smoothing");
+                DrawSmoothingSelector();
+
+                DrawHorizontalLine(4);
+
                 GUILayout.Label("Orientation in the exported file");
                 DrawOrientationSelector();
 
 
 
-                GUILayout.Space(10);
-
-                using (new GUILayout.HorizontalScope())
+                DrawHorizontalLine(4);
+                if (slicerConfig.DebugMode)
                 {
-                    if (GUILayout.Button(showEngineList ? "Hide Engine List" : "Show Engine List"))
-                    {
-                        showEngineList = !showEngineList;
-                        if (!showEngineList)
-                            windowRect = new Rect(300, 80, WINDOW_WIDTH, WINDOW_HEIGHT);
-                    }
-                    if (GUILayout.Button(showRendererDiagnostics ? "Hide Renderer Diagnostics" : "Show Renderer Diagnostics"))
-                    {
-                        showRendererDiagnostics = !showRendererDiagnostics;
-                        if (showRendererDiagnostics)
-                            RefreshRendererDiagnostics(true);
-                        else
-                        {
-                            windowRect = new Rect(300, 80, WINDOW_WIDTH, WINDOW_HEIGHT);
-                            RendererHighlightUtility.ClearHighlight();
-                        }
-                    }
-
-                    if (GUILayout.Button("Refresh Renderers"))
-                        RefreshRendererDiagnostics(true);
-                }
-                if (showEngineList)
-                {
-                    GUILayout.Label(HighLogic.LoadedSceneIsFlight ? "Engines in active vessel:" : "Engines in vessel:");
-                    GUILayout.Label("Toggle each engine to include or exclude its shroud/fairing from the export.");
-
-                    engineScroll = GUILayout.BeginScrollView(engineScroll, GUILayout.Height(145));
-                    if (engineOptions.Count == 0)
-                    {
-                        GUILayout.Label("No engines, fairings or enclosing parts found, or craft not scanned yet.");
-                    }
-                    else
-                    {
-                        for (int i = 0; i < engineOptions.Count; i++)
-                        {
-                            EngineShroudOption option = engineOptions[i];
-                            if (option == null)
-                                continue;
-
-                            using (new GUILayout.HorizontalScope())
-                            {
-                                option.ShowShroud = GUILayout.Toggle(option.ShowShroud, "", GUILayout.Width(115));
-                                GUILayout.Label(option.DisplayName);
-                            }
-                        }
-                    }
-                    GUILayout.EndScrollView();
 
                     using (new GUILayout.HorizontalScope())
                     {
-                        if (GUILayout.Button("Refresh Shroud List"))
-                            RefreshEngineList(true);
+                        if (GUILayout.Button(showEngineList ? "Hide Engine List" : "Show Engine List"))
+                        {
+                            showEngineList = !showEngineList;
+                            if (!showEngineList)
+                                windowRect = new Rect(300, 80, WINDOW_WIDTH, WINDOW_HEIGHT);
+                        }
+                        if (GUILayout.Button(showRendererDiagnostics ? "Hide Renderer Diagnostics" : "Show Renderer Diagnostics"))
+                        {
+                            showRendererDiagnostics = !showRendererDiagnostics;
+                            if (showRendererDiagnostics)
+                                RefreshRendererDiagnostics(true);
+                            else
+                            {
+                                windowRect = new Rect(300, 80, WINDOW_WIDTH, WINDOW_HEIGHT);
+                                RendererHighlightUtility.ClearHighlight();
+                            }
+                        }
 
-                        if (GUILayout.Button("All Shrouds On"))
-                            SetAllEngineShroudToggles(true);
-
-                        if (GUILayout.Button("All Shrouds Off"))
-                            SetAllEngineShroudToggles(false);
+                        if (GUILayout.Button("Refresh Renderers"))
+                            RefreshRendererDiagnostics(true);
                     }
+                    if (showEngineList)
+                    {
+                        GUILayout.Label(HighLogic.LoadedSceneIsFlight ? "Engines in active vessel:" : "Engines in vessel:");
+                        GUILayout.Label("Toggle each engine to include or exclude its shroud/fairing from the export.");
+
+                        engineScroll = GUILayout.BeginScrollView(engineScroll, GUILayout.Height(145));
+                        if (engineOptions.Count == 0)
+                        {
+                            GUILayout.Label("No engines, fairings or enclosing parts found, or craft not scanned yet.");
+                        }
+                        else
+                        {
+                            for (int i = 0; i < engineOptions.Count; i++)
+                            {
+                                EngineShroudOption option = engineOptions[i];
+                                if (option == null)
+                                    continue;
+
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    option.ShowShroud = GUILayout.Toggle(option.ShowShroud, "", GUILayout.Width(115));
+                                    GUILayout.Label(option.DisplayName);
+                                }
+                            }
+                        }
+                        GUILayout.EndScrollView();
+
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            if (GUILayout.Button("Refresh Shroud List"))
+                                RefreshEngineList(true);
+
+                            if (GUILayout.Button("All Shrouds On"))
+                                SetAllEngineShroudToggles(true);
+
+                            if (GUILayout.Button("All Shrouds Off"))
+                                SetAllEngineShroudToggles(false);
+                        }
+                    }
+
+                    GUILayout.Space(8);
+
+                    if (showRendererDiagnostics)
+                        DrawRendererDiagnostics();
                 }
-
-                GUILayout.Space(8);
-
-                if (showRendererDiagnostics)
-                    DrawRendererDiagnostics();
-
                 GUILayout.Space(8);
                 using (new GUILayout.HorizontalScope())
                 {
                     GUILayout.FlexibleSpace();
                     if (GUILayout.Button("Export", GUILayout.Width(120)))
+                    {
+                        RefreshRendererDiagnostics(true);
                         StartExport();
+                    }
                     GUILayout.FlexibleSpace();
                 }
 
                 GUI.enabled = true;
 
-                GUILayout.Space(10);
+                //GUILayout.Space(10);
 
                 DrawProgressBar();
 
@@ -711,6 +760,7 @@ namespace Kerbal_3D_Exporter
 #if false
                 dumpMesh,
 #endif
+                smoothLevel,
                 showShrouds,
                 excludeLaunchClamps,
                 orientation,
@@ -873,6 +923,37 @@ namespace Kerbal_3D_Exporter
             }
         }
 
+        private void DrawSmoothingSelector()
+        {
+            string str = PnTessellator.DescribeLevel(smoothLevel);
+            using (new GUILayout.HorizontalScope())
+            {
+                for (int level = 0; level <= PnTessellator.MaxLevel; level++)
+                {
+                    bool selected = (smoothLevel == level);
+                    string label = level == 0 ? "Off" : level.ToString();
+
+                    bool now = GUILayout.Toggle(selected, label, GUILayout.Width(52));
+                    GUILayout.Space(30);
+
+                    // Only react to a click that turns one ON, so the user cannot untick the
+                    // selected level and end up with nothing chosen.
+                    if (now && !selected)
+                        smoothLevel = level;
+                }
+            }
+
+            if (smoothLevel > 0)
+            {
+                str += "\n" + "Rebuilds round surfaces from the model's own normals." + "\n" + "Flat panels and sharp edges are left exactly as they are.";
+            }
+            using (new GUILayout.HorizontalScope())
+            {
+                GUILayout.Space(40);
+                GUILayout.TextArea(str, GUI.skin.label);
+            }
+        }
+
         private void DrawOrientationSelector()
         {
             // Radio-style list rather than a dropdown: KSP's IMGUI has no real combo box, and
@@ -1015,6 +1096,39 @@ namespace Kerbal_3D_Exporter
                 return trimmed;
 
             return Path.Combine(KSPUtil.ApplicationRootPath, trimmed);
+        }
+
+        private GUIStyle horizontalLineStyle = null;
+
+        private void InitializeStyles()
+        {
+            horizontalLineStyle = new GUIStyle
+            {
+                normal =
+                {
+                    background = Texture2D.whiteTexture
+                },
+                margin = new RectOffset(0, 0, 5, 5),
+                fixedHeight = 1
+            };
+        }
+        private void DrawHorizontalLine(float space, float thickness = 1f)
+        {
+            if (horizontalLineStyle == null)
+                InitializeStyles();
+            Color previousColor = GUI.color;
+
+            GUI.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+            GUILayout.Space(space);
+            GUILayout.Box(
+                GUIContent.none,
+                horizontalLineStyle,
+                GUILayout.ExpandWidth(true),
+                GUILayout.Height(thickness)
+            );
+            GUILayout.Space(space);
+
+            GUI.color = previousColor;
         }
     }
 }

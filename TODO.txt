@@ -1,5 +1,3 @@
 TODO
 
-Added support for kerbal changelog
 
-Add message saying that configured slicer needs to be saved

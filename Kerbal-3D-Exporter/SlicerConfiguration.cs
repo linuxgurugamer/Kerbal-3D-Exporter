@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using UnityEngine;
 
 using static Kerbal_3D_Exporter.Kerbal3DExporter_ToolbarRegistration;
 
@@ -10,13 +9,15 @@ namespace Kerbal_3D_Exporter
     {
         private const string CONFIG_NODE = "SlicerConfiguration";
 
-        private static readonly string ConfigFile =Utils.GetSlicerConfigurationFilePath;
+        private static readonly string ConfigFile = Utils.GetSlicerConfigurationFilePath;
 
         public string SelectedSlicerName { get; set; } = "";
         public string SelectedSlicerPath { get; set; } = "";
 
         public string SelectedSlicerStartMenuSearch { get; set; } = "";
         public bool UseStartMenuSearchForSlicer { get; set; }
+
+        public bool DebugMode { get; set; }
 
         public string OutputDirectory { get; set; } = "";
 
@@ -39,6 +40,7 @@ namespace Kerbal_3D_Exporter
             node.AddValue(nameof(SelectedSlicerPath), SelectedSlicerPath);
             node.AddValue(nameof(SelectedSlicerStartMenuSearch), SelectedSlicerStartMenuSearch);
             node.AddValue(nameof(UseStartMenuSearchForSlicer), UseStartMenuSearchForSlicer);
+            node.AddValue(nameof(DebugMode), DebugMode);
             node.AddValue(nameof(OutputDirectory), OutputDirectory);
 
             node.AddValue(nameof(Units), (int)Units);
@@ -87,11 +89,11 @@ namespace Kerbal_3D_Exporter
             SelectedSlicerStartMenuSearch =
                 node.GetValue(nameof(SelectedSlicerStartMenuSearch)) ?? "";
 
-            bool.TryParse(
-                node.GetValue(nameof(UseStartMenuSearchForSlicer)),
-                out bool useSearch);
-
+            bool.TryParse(node.GetValue(nameof(UseStartMenuSearchForSlicer)), out bool useSearch);
             UseStartMenuSearchForSlicer = useSearch;
+
+            bool.TryParse(node.GetValue(nameof(DebugMode)), out bool debugMode);
+            DebugMode = debugMode;
 
             OutputDirectory =
                 node.GetValue(nameof(OutputDirectory)) ?? "";
@@ -135,6 +137,7 @@ namespace Kerbal_3D_Exporter
             SelectedSlicerPath = "";
             SelectedSlicerStartMenuSearch = "";
             UseStartMenuSearchForSlicer = false;
+            DebugMode = false;
 
             OutputDirectory =
                 Utils.GetDefaultOutputDirectory;

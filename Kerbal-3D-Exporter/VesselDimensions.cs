@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace Kerbal_3D_Exporter
 {
@@ -242,5 +243,130 @@ namespace Kerbal_3D_Exporter
                 }
             }
         }
+
+
+        public static float CalculateScaleForHeight(
+            Dimensions dimensions,
+            float desiredHeight,
+            Utils.LengthUnit desiredHeightUnits)
+        {
+            if (dimensions.Height <= 0f)
+                throw new ArgumentOutOfRangeException(
+                    "dimensions",
+                    "The craft height must be greater than zero.");
+
+            if (desiredHeight <= 0f)
+                throw new ArgumentOutOfRangeException(
+                    "desiredHeight",
+                    "The desired height must be greater than zero.");
+
+            float desiredHeightMeters;
+
+            switch (desiredHeightUnits)
+            {
+                case Utils.LengthUnit.Meters:
+                    desiredHeightMeters = desiredHeight;
+                    break;
+
+                case Utils.LengthUnit.Inches:
+                    desiredHeightMeters = desiredHeight * 0.0254f;
+                    break;
+
+                case Utils.LengthUnit.Millimeters:
+                    desiredHeightMeters = desiredHeight * 0.001f;
+                    break;
+
+                case Utils.LengthUnit.Centimeters:
+                    desiredHeightMeters = desiredHeight * 0.01f;
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(
+                        "desiredHeightUnits",
+                        "Unsupported length unit.");
+            }
+
+            return desiredHeightMeters / dimensions.Height;
+        }
+
+
+
+        public enum DimensionType
+        {
+            Width,
+            Height,
+            Length
+        }
+
+        public static float CalculateScaleForDimension(
+            Dimensions dimensions,
+            float desiredSize,
+            Utils.LengthUnit desiredSizeUnits,
+            DimensionType dimensionType)
+        {
+            if (desiredSize <= 0f)
+                throw new ArgumentOutOfRangeException(
+                    "desiredSize",
+                    $"The desired size {desiredSize} must be greater than zero.");
+
+            float currentSize;
+
+            switch (dimensionType)
+            {
+                case DimensionType.Width:
+                    currentSize = dimensions.Width;
+                    break;
+
+                case DimensionType.Height:
+                    currentSize = dimensions.Height;
+                    break;
+
+                case DimensionType.Length:
+                    currentSize = dimensions.Length;
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(
+                        "dimensionType",
+                        "Unsupported dimension type.");
+            }
+
+            if (currentSize <= 0f)
+                throw new ArgumentOutOfRangeException(
+                    "dimensions",
+                    "The selected craft dimension must be greater than zero.");
+
+            float desiredSizeMeters;
+
+            switch (desiredSizeUnits)
+            {
+                case Utils.LengthUnit.Meters:
+                    desiredSizeMeters = desiredSize;
+                    break;
+
+                case Utils.LengthUnit.Inches:
+                    desiredSizeMeters = desiredSize * 0.0254f;
+                    break;
+
+                case Utils.LengthUnit.Millimeters:
+                    desiredSizeMeters = desiredSize * 0.001f;
+                    break;
+
+                case Utils.LengthUnit.Centimeters:
+                    desiredSizeMeters = desiredSize * 0.01f;
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(
+                        "desiredSizeUnits",
+                        "Unsupported length unit.");
+            }
+
+            return desiredSizeMeters / currentSize;
+        }
+
+
+
+
     }
 }

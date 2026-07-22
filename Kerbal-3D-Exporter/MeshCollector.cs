@@ -621,6 +621,13 @@ namespace Kerbal_3D_Exporter
             ExportOrientation orientation)
         {
             Vector3[] vertices = mesh.vertices;
+
+            // Vertex normals: the record of the surface the artist INTENDED, which is what lets
+            // PnTessellator turn a 24-sided prism back into a cylinder. Meshes without normals are
+            // legal and simply come through flat.
+            Vector3[] normals = mesh.normals;
+            bool hasNormals = normals != null && normals.Length == vertices.Length;
+
             Material[] materials = renderer != null ? renderer.sharedMaterials : null;
 
             for (int sub = 0; sub < mesh.subMeshCount; sub++)
@@ -648,7 +655,28 @@ namespace Kerbal_3D_Exporter
                     Vector3 c = ExportOrientationUtilities.Apply(
                         (transform.TransformPoint(vertices[tris[i + 2]]) - originOffset) * scale, orientation);
 
-                    output.Add(new Triangle(a, b, c, partIndex));
+                    if (!hasNormals)
+                    {
+                        output.Add(new Triangle(a, b, c, partIndex));
+                        continue;
+                    }
+
+                    // Normals are DIRECTIONS, so TransformDirection (rotation only) rather than
+                    // TransformPoint -- no origin offset and no scale. They then take the same
+                    // ExportOrientation rotation as the positions; since every orientation is a
+                    // proper rotation, applying it to a normal is exactly right and needs no
+                    // inverse-transpose correction.
+                    //
+                    // TransformDirection does not renormalise under non-uniform part scaling, so
+                    // PnTessellator normalises before use.
+                    Vector3 na = ExportOrientationUtilities.Apply(
+                        transform.TransformDirection(normals[tris[i]]), orientation);
+                    Vector3 nb = ExportOrientationUtilities.Apply(
+                        transform.TransformDirection(normals[tris[i + 1]]), orientation);
+                    Vector3 nc = ExportOrientationUtilities.Apply(
+                        transform.TransformDirection(normals[tris[i + 2]]), orientation);
+
+                    output.Add(new Triangle(a, b, c, partIndex, na, nb, nc));
                 }
             }
         }
