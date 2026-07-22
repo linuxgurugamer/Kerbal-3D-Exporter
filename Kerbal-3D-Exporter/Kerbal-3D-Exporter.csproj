@@ -82,6 +82,7 @@
     <Compile Include="BinaryStlWriter.cs" />
     <Compile Include="CraftPrintExporter.cs" />
     <Compile Include="CraftPrintExporterWindow.cs" />
+    <Compile Include="EnclosureUtilities.cs" />
     <Compile Include="EngineUtilities.cs" />
     <Compile Include="ExportContext.cs" />
     <Compile Include="ExportOrientation.cs" />
@@ -91,6 +92,7 @@
     <Compile Include="MeshCleanup.cs" />
     <Compile Include="MeshDumpWriter.cs" />
     <Compile Include="MeshCollector.cs" />
+    <Compile Include="PartHierarchyUtilities.cs" />
     <Compile Include="ModuleCraftPrintExporter.cs" />
     <Compile Include="ObjWriter.cs" />
     <Compile Include="PartDiagnosticsWriter.cs" />

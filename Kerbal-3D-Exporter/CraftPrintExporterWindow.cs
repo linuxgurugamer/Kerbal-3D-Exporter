@@ -282,7 +282,7 @@ namespace Kerbal_3D_Exporter
                     engineScroll = GUILayout.BeginScrollView(engineScroll, GUILayout.Height(145));
                     if (engineOptions.Count == 0)
                     {
-                        GUILayout.Label("No engines found, or craft not scanned yet.");
+                        GUILayout.Label("No engines, fairings or enclosing parts found, or craft not scanned yet.");
                     }
                     else
                     {
@@ -303,7 +303,7 @@ namespace Kerbal_3D_Exporter
 
                     using (new GUILayout.HorizontalScope())
                     {
-                        if (GUILayout.Button("Refresh Engine List"))
+                        if (GUILayout.Button("Refresh Shroud List"))
                             RefreshEngineList(true);
 
                         if (GUILayout.Button("All Shrouds On"))
@@ -915,7 +915,11 @@ namespace Kerbal_3D_Exporter
                 if (option == null)
                     continue;
 
-                copy.Add(new EngineShroudOption(option.Part, option.DisplayName, option.ShowShroud));
+                // IsEnclosure must be carried across. Without it every option arrives at the
+                // exporter looking like an ordinary engine shroud, and enclosing parts silently
+                // stop being hidden -- the exact bug this list was extended to fix.
+                copy.Add(new EngineShroudOption(
+                    option.Part, option.DisplayName, option.ShowShroud, option.IsEnclosure));
             }
 
             return copy;

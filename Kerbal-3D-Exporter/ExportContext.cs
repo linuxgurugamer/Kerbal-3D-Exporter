@@ -55,6 +55,15 @@ namespace Kerbal_3D_Exporter
         // or renderers are disabled, especially when mesh collection scans inactive children.
         public HashSet<Transform> ShroudTransformsToSkip = new HashSet<Transform>();
 
+        // Parts that geometrically enclose other parts (fairings, structural tubes, engine
+        // plates, service bays). Populated by EnclosureUtilities before the shroud stage.
+        public Dictionary<Part, int> EnclosingParts = new Dictionary<Part, int>();
+
+        // Human-readable "A encloses B" lines. Written to the part diagnostics FILE and the KSP
+        // log, not just the window's status pane -- the pane scrolls and is destroyed with the
+        // window, which is no use for diagnosing an export after the fact.
+        public List<string> EnclosureDiagnostics = new List<string>();
+
         // Transforms belonging to inactive/non-selected ModulePartVariants variants.
         // These must be skipped during mesh collection or every variant model can be exported.
         public HashSet<Transform> InactiveVariantTransformsToSkip = new HashSet<Transform>();

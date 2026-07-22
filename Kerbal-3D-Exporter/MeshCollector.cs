@@ -27,7 +27,8 @@ namespace Kerbal_3D_Exporter
             HashSet<Transform> disabledRendererTransforms,
             List<string> diagnostics,
             Dictionary<int, string> partNames,
-            ExportOrientation orientation)
+            ExportOrientation orientation,
+            HashSet<Part> enclosureParts)
         {
             List<Triangle> triangles = new List<Triangle>();
             float finalScale = METERS_TO_MM * userScale;
@@ -100,8 +101,31 @@ namespace Kerbal_3D_Exporter
                 // shrouds when the global checkbox is off.
                 bool exportPartShrouds = defaultShowShrouds;
 
-                if (EngineUtilities.IsEnginePart(part) && engineVisibility.ContainsKey(part))
+                // No `IsEnginePart &&` guard: the per-part toggle must work for any part in the
+                // list, not only engines. Fairing bases, structural tubes and engine plates are
+                // the parts whose geometry actually hides things, and none of them is an engine.
+                if (engineVisibility.ContainsKey(part))
                     exportPartShrouds = exportPartShrouds && engineVisibility[part];
+
+                // An enclosing part IS the shell in the way, so when it is switched off ALL of its
+                // own geometry goes, not just meshes with a shroud-ish name -- a structural tube
+                // has no object called "Shroud" anywhere in it.
+                //
+                // Tested by PART identity rather than through shroudTransformsToSkip, because that
+                // set is matched by walking UP the transform parents, and a part's contents are
+                // parented underneath it. Marking the tube there would take the engine inside it
+                // out of the export too.
+                // A part that IS a shell. Used two ways: to drop it entirely when its toggle is
+                // off (immediately below), and to exempt it from the shroud NAME heuristic when its
+                // toggle is on -- a fairing's own panels are legitimately fairing-named, and the
+                // heuristic would strip them from an export the user asked to keep.
+                bool isEnclosurePart = enclosureParts != null && enclosureParts.Contains(part);
+
+                if (!exportPartShrouds && isEnclosurePart)
+                {
+                    AddDiagnostic(diagnostics, "SKIP", "enclosing part (fairing/tube/bay) hidden by its shroud toggle", part, part.transform, null, null);
+                    continue;
+                }
 
                 bool hideEngineShroud = !exportPartShrouds;
                 bool bottomNodeHasNoAttachment = AttachNodeUtilities.BottomAttachNodeIsEmpty(part) && !variantParts.Contains(part);
@@ -113,7 +137,7 @@ namespace Kerbal_3D_Exporter
                         continue;
 
                     MeshRenderer mr = mf.GetComponent<MeshRenderer>();
-                    string reason = GetSkipReason(part, mf.transform, mr, hideEngineShroud, bottomNodeHasNoAttachment, shroudTransformsToSkip, inactiveVariantTransformsToSkip, originallyHiddenVariantTransforms,
+                    string reason = GetSkipReason(part, mf.transform, mr, hideEngineShroud, bottomNodeHasNoAttachment, isEnclosurePart, shroudTransformsToSkip, inactiveVariantTransformsToSkip, originallyHiddenVariantTransforms,
 #if EXPORT_EXCLUSION_RULE_DEFINED
                         exclusionRules, 
 #endif
@@ -135,7 +159,7 @@ namespace Kerbal_3D_Exporter
                     if (smr == null)
                         continue;
 
-                    string reason = GetSkipReason(part, smr.transform, smr, hideEngineShroud, bottomNodeHasNoAttachment, shroudTransformsToSkip, inactiveVariantTransformsToSkip, originallyHiddenVariantTransforms,
+                    string reason = GetSkipReason(part, smr.transform, smr, hideEngineShroud, bottomNodeHasNoAttachment, isEnclosurePart, shroudTransformsToSkip, inactiveVariantTransformsToSkip, originallyHiddenVariantTransforms,
 #if EXPORT_EXCLUSION_RULE_DEFINED
                         exclusionRules, 
 #endif
@@ -167,6 +191,7 @@ namespace Kerbal_3D_Exporter
             Renderer renderer,
             bool hideEngineShroud,
             bool bottomNodeHasNoAttachment,
+            bool isEnclosurePart,
             HashSet<Transform> shroudTransformsToSkip,
             HashSet<Transform> inactiveVariantTransformsToSkip,
             HashSet<Transform> originallyHiddenVariantTransforms,
@@ -195,8 +220,21 @@ namespace Kerbal_3D_Exporter
             if (hideEngineShroud && TransformIsInSkipSet(transform, shroudTransformsToSkip))
                 return "marked shroud/fairing transform; shrouds disabled";
 
-            if (hideEngineShroud && renderer != null && RendererLooksLikeShroud(renderer))
-                return "renderer/material/path looks like shroud/fairing; shrouds disabled";
+            // NOTE the missing `renderer != null` guard, which used to be here and was the
+            // original form of this bug. A MeshFilter with no sibling MeshRenderer -- a collider
+            // mesh, an LOD mesh, a jettisonable shroud whose renderer lives elsewhere -- would
+            // fail that guard and skip this check entirely, then skip the activity check below
+            // for the same reason, and get exported no matter what the shroud settings said.
+            //
+            // The name heuristic never needed a Renderer: TransformLooksLikeShroud walks the
+            // transform's own name and its ancestors. The Renderer only adds material names, so
+            // it is used when present and simply not required.
+            // Not applied to enclosure parts. Their geometry is governed entirely by the per-part
+            // toggle (the enclosureParts identity check upstream), and running the name heuristic
+            // on top of that would strip a TICKED fairing's own panels -- a fairing part is full of
+            // legitimately fairing-named meshes.
+            if (hideEngineShroud && !isEnclosurePart && LooksLikeShroud(transform, renderer))
+                return "name/material/path looks like shroud/fairing; shrouds disabled";
 
 #if EXPORT_EXCLUSION_RULE_DEFINED
             // shroud-exclusions.txt is documented (see the sample file it generates) as applying
@@ -212,14 +250,23 @@ namespace Kerbal_3D_Exporter
             // Stock-style engine shrouds are only visible in KSP when another part is attached to
             // the bottom attach node.  If the bottom node exists but is empty, skip likely shroud
             // renderers even when shrouds are enabled, because the in-game vessel would not show them.
-            if (bottomNodeHasNoAttachment && renderer != null && RendererLooksLikeShroud(renderer))
+            if (bottomNodeHasNoAttachment && !isEnclosurePart && LooksLikeShroud(transform, renderer))
                 return "bottom attach node is empty; KSP would hide this shroud/fairing";
 
             if (bottomNodeHasNoAttachment && TransformIsInSkipSet(transform, shroudTransformsToSkip))
                 return "bottom attach node is empty; marked shroud/fairing transform";
 
-            if (!EXPORT_DISABLED_RENDERERS && renderer != null && (!renderer.enabled || !renderer.gameObject.activeInHierarchy))
-                return "disabled renderer or inactive hierarchy";
+            if (!EXPORT_DISABLED_RENDERERS)
+            {
+                if (renderer != null && (!renderer.enabled || !renderer.gameObject.activeInHierarchy))
+                    return "disabled renderer or inactive hierarchy";
+
+                // A mesh with no Renderer still lives on a GameObject that KSP may have switched
+                // off. Previously this whole branch was skipped when renderer was null, so an
+                // inactive renderer-less mesh was exported as though it were visible.
+                if (renderer == null && transform != null && !transform.gameObject.activeInHierarchy)
+                    return "inactive hierarchy (mesh has no renderer)";
+            }
 
             return null;
         }
@@ -433,6 +480,15 @@ namespace Kerbal_3D_Exporter
             return path;
         }
 
+        /// <summary>
+        /// Matches by walking UP the parents, so that marking a shroud object also covers the
+        /// meshes beneath it. Bounded at the part root for the same reason as
+        /// AncestorNameHasShroudToken: without the bound, a single stray entry belonging to a
+        /// part higher in the stack silently claims every mesh of everything below it.
+        ///
+        /// Legitimate entries are always shroud sub-objects within the same part, so the mesh
+        /// reaches them before it reaches its own part root and nothing is lost.
+        /// </summary>
         private static bool TransformIsInSkipSet(Transform transform, HashSet<Transform> skipSet)
         {
             if (transform == null || skipSet == null || skipSet.Count == 0)
@@ -443,6 +499,11 @@ namespace Kerbal_3D_Exporter
             {
                 if (skipSet.Contains(t))
                     return true;
+
+                // Stop after testing the part's own root: anything above it belongs to a
+                // different part and must not be able to claim this mesh.
+                if (t.GetComponent<Part>() != null)
+                    return false;
 
                 t = t.parent;
             }
@@ -592,6 +653,61 @@ namespace Kerbal_3D_Exporter
             }
         }
 
+        /// <summary>
+        /// Shroud name heuristic that works with or without a Renderer.
+        ///
+        /// The transform chain carries the object names, which is where the shroud tokens
+        /// actually live; the Renderer only contributes material names on top. Requiring a
+        /// Renderer meant collider-only and LOD meshes were never tested at all.
+        /// </summary>
+        private static bool LooksLikeShroud(Transform transform, Renderer renderer)
+        {
+            if (renderer != null && RendererLooksLikeShroud(renderer))
+                return true;
+
+            return AncestorNameHasShroudToken(transform);
+        }
+
+        /// <summary>
+        /// Walk from a mesh transform up towards its part root, testing names for shroud tokens,
+        /// and STOP at the first transform carrying a Part component.
+        ///
+        /// THIS BOUNDARY IS THE WHOLE POINT. KSP parents child parts underneath their parent
+        /// part's transform, so an unbounded walk leaves the part that owns the mesh and starts
+        /// reading the names of parts ABOVE it in the stack. Stock fairing parts are named
+        /// 'fairingSize1/2/3', which contains a shroud token -- so every part attached below a
+        /// fairing had a token in its ancestor chain, every one of their meshes "looked like a
+        /// shroud", and all of them were skipped whenever hideEngineShroud was true for that part.
+        /// hideEngineShroud is true for EVERY part when the global "show shrouds" box is off,
+        /// which is precisely how somebody exports to get rid of shrouds.
+        ///
+        /// Symptom: everything below a fairing missing from the export, nothing reported as
+        /// enclosing it, parts above the fairing unaffected -- i.e. "the parts at the bottom".
+        ///
+        /// The part's own root name is deliberately NOT tested either. A part's internal name
+        /// describes what the part IS, not that some sub-mesh is a shroud; testing it would make
+        /// every mesh of a fairing part vanish regardless of its toggle. Whole-part hiding is the
+        /// enclosure toggle's job.
+        /// </summary>
+        private static bool AncestorNameHasShroudToken(Transform transform)
+        {
+            Transform t = transform;
+            while (t != null)
+            {
+                // Reached the owning part's root (or, if something went wrong upstream, an
+                // ancestor part). Either way, stop: names beyond here belong to other parts.
+                if (t.GetComponent<Part>() != null)
+                    return false;
+
+                if (NameHasShroudToken(t.name))
+                    return true;
+
+                t = t.parent;
+            }
+
+            return false;
+        }
+
         private static bool RendererLooksLikeShroud(Renderer renderer)
         {
             if (renderer == null)
@@ -603,13 +719,10 @@ namespace Kerbal_3D_Exporter
             if (renderer.gameObject != null && NameHasShroudToken(renderer.gameObject.name))
                 return true;
 
-            Transform t = renderer.transform;
-            while (t != null)
-            {
-                if (NameHasShroudToken(t.name))
-                    return true;
-                t = t.parent;
-            }
+            // Bounded at the part root -- see AncestorNameHasShroudToken. This walk had the same
+            // cross-part defect and would have kept the bug alive on its own.
+            if (AncestorNameHasShroudToken(renderer.transform))
+                return true;
 
             Material[] mats = renderer.sharedMaterials;
             if (mats != null)

@@ -1,12 +1,15 @@
 Changelog
 
+0.0.3
+	Fixed issue where some parts/fairings weren't being exported properly, noticable on large complex vessels
+
 0.0.2
 	Fixed nullref when selecting uninstalled slicer
 	Added display of model size
 	Added saving the scale value
 	Added saving the model units
 	Added support for Kerbal Changelog
-	Changed Close button on config window to Cancen if any unsaved changes
+	Changed Close button on config window to Cancel if any unsaved changes
 	Added warning about config not saved
 
 0.0.1.2 

@@ -27,6 +27,21 @@ namespace Kerbal_3D_Exporter
 
         public static void Write(string file, List<Part> parts, string sceneDescription)
         {
+            Write(file, parts, sceneDescription, null);
+        }
+
+        /// <summary>
+        /// <paramref name="enclosureDiagnostics"/> holds the "A encloses B" lines from
+        /// EnclosureUtilities. They go in this file because it is written to disk next to the
+        /// exported model and survives the session -- unlike the window's status pane, which
+        /// scrolls and is destroyed along with the window.
+        /// </summary>
+        public static void Write(
+            string file,
+            List<Part> parts,
+            string sceneDescription,
+            List<string> enclosureDiagnostics)
+        {
             if (string.IsNullOrEmpty(file))
                 return;
 
@@ -41,6 +56,8 @@ namespace Kerbal_3D_Exporter
                 sw.WriteLine("This file shows each part's active GameObject state, selected part variant, and child GameObjects/renderers.");
                 sw.WriteLine("Use Path, Mesh, Material, and Variant information here to identify shroud/fairing meshes that should be excluded.");
                 sw.WriteLine();
+
+                WriteEnclosureSection(sw, enclosureDiagnostics);
 
                 if (parts == null)
                     return;
@@ -286,6 +303,37 @@ namespace Kerbal_3D_Exporter
                 t = t.parent;
             }
             return path;
+        }
+
+        /// <summary>
+        /// Parts detected as enclosing other parts -- fairings, structural tubes, engine plates,
+        /// service bays. This is the section to read first if something is missing from, or
+        /// unexpectedly present in, an export.
+        /// </summary>
+        private static void WriteEnclosureSection(StreamWriter sw, List<string> enclosureDiagnostics)
+        {
+            sw.WriteLine("ENCLOSING PARTS");
+            sw.WriteLine("---------------");
+
+            if (enclosureDiagnostics == null || enclosureDiagnostics.Count == 0)
+            {
+                sw.WriteLine("None detected: no part was found to geometrically contain another.");
+                sw.WriteLine();
+                return;
+            }
+
+            sw.WriteLine("These parts were detected as containing other parts. Each one appears in the");
+            sw.WriteLine("exporter window's shroud list; unticking it removes that shell from the export,");
+            sw.WriteLine("leaving whatever is inside it visible. Ticking it keeps the shell.");
+            sw.WriteLine();
+            sw.WriteLine("Detection is geometric (axis-aligned bounds), so it is a heuristic. If something");
+            sw.WriteLine("here looks wrong, that part is the one to re-tick in the window.");
+            sw.WriteLine();
+
+            for (int i = 0; i < enclosureDiagnostics.Count; i++)
+                sw.WriteLine("  " + enclosureDiagnostics[i]);
+
+            sw.WriteLine();
         }
 
         private static string Safe(string s)

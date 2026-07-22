@@ -235,10 +235,62 @@ namespace Kerbal_3D_Exporter
 
         private static void StageRefreshEngineList(ExportContext ctx)
         {
-            Status(ctx, "Scanning engines.");
-            if (ctx.EngineShroudOptions == null || ctx.EngineShroudOptions.Count == 0)
-                ctx.EngineShroudOptions = EngineUtilities.GetEngineOptions(ctx.Parts, ctx.ShowShrouds);
+            Status(ctx, "Scanning engines, fairings and enclosing parts.");
+
+            // Detect parts that geometrically enclose other parts BEFORE building the option
+            // list, so fairings, structural tubes and engine plates can appear in it. Until now
+            // the list held engines only, which is why a shell belonging to a non-engine part
+            // could never be switched off.
+            ctx.EnclosureDiagnostics = new List<string>();
+            ctx.EnclosingParts = EnclosureUtilities.FindEnclosingParts(ctx.Parts, ctx.EnclosureDiagnostics);
+
+            // Three destinations on purpose. The window pane scrolls and is destroyed with the
+            // window, so it is the WORST place for the one thing you would want to re-read after
+            // a bad export. KSP.log survives the session and can be attached to a bug report; the
+            // part diagnostics file lands next to the exported model.
+            for (int i = 0; i < ctx.EnclosureDiagnostics.Count; i++)
+                Log.Info("[Kerbal3DExporter] " + ctx.EnclosureDiagnostics[i]);
+
+            if (ctx.EnclosingParts.Count > 0)
+            {
+                // Only a few lines go to the window. A big craft can produce dozens, and
+                // flooding the pane pushes every other status message out of view.
+                const int MAX_STATUS_LINES = 5;
+
+                int shown = Math.Min(ctx.EnclosureDiagnostics.Count, MAX_STATUS_LINES);
+                for (int i = 0; i < shown; i++)
+                    Status(ctx, ctx.EnclosureDiagnostics[i]);
+
+                if (ctx.EnclosureDiagnostics.Count > shown)
+                {
+                    Status(ctx, "... and " + (ctx.EnclosureDiagnostics.Count - shown) +
+                        " more. Full list in the part diagnostics file and KSP.log.");
+                }
+
+                Status(ctx, "Parts enclosing other parts: " + ctx.EnclosingParts.Count +
+                    ". Untick one in the shroud list to keep it in the export.");
+            }
+
+            // Always reconcile against the parts actually on the craft right now, rather than
+            // trusting whatever list the window last built. A non-empty list used to be taken
+            // as-is, so any engine added after the window last refreshed was missing from the
+            // map and its shroud quietly fell back to the global default. Reconciling keeps the
+            // user's per-engine choices for parts that are still present.
+            int previousCount = ctx.EngineShroudOptions == null ? 0 : ctx.EngineShroudOptions.Count;
+
+            ctx.EngineShroudOptions = EngineUtilities.ReconcileEngineOptions(
+                ctx.Parts,
+                ctx.EngineShroudOptions,
+                ctx.ShowShrouds,
+                ctx.EnclosingParts);
+
             Status(ctx, "Engines found: " + ctx.EngineShroudOptions.Count);
+
+            if (previousCount != 0 && previousCount != ctx.EngineShroudOptions.Count)
+            {
+                Status(ctx, "Engine list was out of date (window had " + previousCount +
+                    "); rebuilt from the current craft.");
+            }
             ctx.Stage = ExportStage.SetShroudVisibility;
             SetProgress(ctx, 3);
         }
@@ -251,8 +303,15 @@ namespace Kerbal_3D_Exporter
                 ctx.ShowShrouds,
                 ctx.EngineShroudOptions,
                 ctx.SavedShroudStates,
-                ctx.ShroudTransformsToSkip);
+                ctx.ShroudTransformsToSkip,
+                new HashSet<Part>(ctx.EnclosingParts.Keys));
             Status(ctx, "Shroud/fairing states changed: " + ctx.SavedShroudStates.Count);
+            Status(ctx, "Shroud transforms marked for skipping: " + ctx.ShroudTransformsToSkip.Count);
+
+            // Per-engine summary. Worth the log lines: shroud problems are invisible until you
+            // look at the exported model, and this states plainly what the exporter decided for
+            // each engine, so a wrong result can be traced without guessing.
+            ReportEngineShroudDecisions(ctx);
 
             ctx.InactiveVariantTransformsToSkip = ActiveVariantUtilities.BuildInactiveVariantTransformSet(ctx.Parts, ctx.Status);
 
@@ -261,10 +320,86 @@ namespace Kerbal_3D_Exporter
         }
 
 
+        /// <summary>
+        /// Enclosing parts whose toggle is OFF, i.e. the ones whose geometry must not be
+        /// exported. An enclosing part the user left ticked stays in the export as normal.
+        /// </summary>
+        private static HashSet<Part> BuildHiddenEnclosureSet(ExportContext ctx)
+        {
+            HashSet<Part> hidden = new HashSet<Part>();
+
+            if (ctx.EngineShroudOptions == null)
+                return hidden;
+
+            for (int i = 0; i < ctx.EngineShroudOptions.Count; i++)
+            {
+                EngineShroudOption option = ctx.EngineShroudOptions[i];
+                if (option == null || option.Part == null || !option.IsEnclosure)
+                    continue;
+
+                if (!(ctx.ShowShrouds && option.ShowShroud))
+                    hidden.Add(option.Part);
+            }
+
+            return hidden;
+        }
+
+        private static void ReportEngineShroudDecisions(ExportContext ctx)
+        {
+            if (ctx.EngineShroudOptions == null || ctx.EngineShroudOptions.Count == 0)
+            {
+                Status(ctx, "No engines, fairings or enclosing parts found on this craft.");
+                return;
+            }
+
+            int hidden = 0;
+            int shown = 0;
+            int missingPart = 0;
+            int enclosuresHidden = 0;
+
+            for (int i = 0; i < ctx.EngineShroudOptions.Count; i++)
+            {
+                EngineShroudOption option = ctx.EngineShroudOptions[i];
+                if (option == null)
+                    continue;
+
+                if (option.Part == null)
+                {
+                    // A stale option whose Part has been removed from the craft. Harmless now
+                    // that the list is reconciled, but worth surfacing if it ever happens.
+                    missingPart++;
+                    continue;
+                }
+
+                if (ctx.ShowShrouds && option.ShowShroud)
+                {
+                    shown++;
+                }
+                else
+                {
+                    hidden++;
+                    if (option.IsEnclosure)
+                        enclosuresHidden++;
+                }
+            }
+
+            Status(ctx, "Shrouds/shells -- hidden: " + hidden + ", shown: " + shown +
+                (ctx.ShowShrouds ? "" : " (global \"show shrouds\" is off, so all are hidden)"));
+
+            if (enclosuresHidden > 0)
+            {
+                Status(ctx, "Of those, " + enclosuresHidden +
+                    " are enclosing parts (fairing/tube/bay) whose whole geometry is being removed.");
+            }
+
+            if (missingPart > 0)
+                Status(ctx, "WARNING: " + missingPart + " engine option(s) referenced a part no longer on the craft.");
+        }
+
         private static void StageWritePartDiagnostics(ExportContext ctx)
         {
             Status(ctx, "Writing part/GameObject/variant diagnostics.");
-            PartDiagnosticsWriter.Write(ctx.PartDiagnosticFile, ctx.Parts, ctx.SceneDescription);
+            PartDiagnosticsWriter.Write(ctx.PartDiagnosticFile, ctx.Parts, ctx.SceneDescription, ctx.EnclosureDiagnostics);
             Status(ctx, "Part diagnostics written: " + ctx.PartDiagnosticFile);
             ctx.Stage = ExportStage.CollectMeshes;
             SetProgress(ctx, 5);
@@ -291,7 +426,8 @@ namespace Kerbal_3D_Exporter
                 ctx.DisabledRendererTransforms,
                 ctx.MeshDiagnostics,
                 ctx.PartNames,
-                ctx.Orientation);
+                ctx.Orientation,
+                BuildHiddenEnclosureSet(ctx));
             Status(ctx, "Collected raw triangles: " + ctx.Triangles.Count);
 #if false
             WriteMeshDiagnostics(ctx);
